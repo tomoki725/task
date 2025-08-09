@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク詳細 - 営業タスク管理ツール</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h1>タスク詳細</h1>
+            <div class="header-actions">
+                <button onclick="window.location.href='dashboard.html'" class="back-btn">ダッシュボードに戻る</button>
+                <button onclick="logout()" class="logout-btn">ログアウト</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="detail-container">
+        <div class="task-detail-section">
+            <div class="task-detail-header">
+                <h2 id="taskTitle"></h2>
+                <button onclick="enableEdit()" class="edit-btn">編集</button>
+            </div>
+
+            <div class="task-detail-content">
+                <div class="detail-row">
+                    <label>タスクタイプ:</label>
+                    <span id="taskType"></span>
+                </div>
+
+                <div class="detail-row">
+                    <label>ステータス:</label>
+                    <select id="taskStatus" disabled>
+                        <option value="未対応">未対応</option>
+                        <option value="処理中">処理中</option>
+                        <option value="処理完了">処理完了</option>
+                        <option value="終了">終了</option>
+                    </select>
+                </div>
+
+                <div class="detail-row">
+                    <label>担当者:</label>
+                    <select id="taskAssignee" disabled>
+                        <option value="">なし</option>
+                    </select>
+                </div>
+                
+                <div class="detail-row" id="projectRow" style="display: none;">
+                    <label>プロジェクト:</label>
+                    <span id="taskProject"></span>
+                </div>
+
+                <div class="detail-row">
+                    <label>概要:</label>
+                    <textarea id="taskDescription" disabled rows="4"></textarea>
+                </div>
+
+                <div class="detail-row">
+                    <label>開始日:</label>
+                    <input type="date" id="taskStartDate" disabled>
+                </div>
+
+                <div class="detail-row">
+                    <label>終了日:</label>
+                    <input type="date" id="taskEndDate" disabled>
+                </div>
+
+                <div class="detail-actions" id="editActions" style="display: none;">
+                    <button onclick="saveTaskChanges()" class="save-btn">保存</button>
+                    <button onclick="cancelEdit()" class="cancel-btn">キャンセル</button>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <h3>変更履歴</h3>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+
+        <div class="comment-section">
+            <h3>コメント</h3>
+            
+            <div class="comment-form">
+                <textarea id="commentInput" placeholder="コメントを入力..." rows="3"></textarea>
+                <button onclick="addComment()" class="comment-btn">コメントを投稿</button>
+            </div>
+
+            <div id="commentList" class="comment-list"></div>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="data.js"></script>
+    <script src="task-detail.js"></script>
+</body>
+</html>

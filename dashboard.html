@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>営業タスク管理ツール - ダッシュボード</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h1>営業タスク管理ツール</h1>
+            <div class="header-actions">
+                <div class="notification-container">
+                    <button onclick="toggleNotifications()" class="notification-btn">
+                        <span class="bell-icon">🔔</span>
+                        <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+                    </button>
+                    <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
+                        <div class="notification-header">
+                            <h3>通知</h3>
+                            <button onclick="markAllAsRead()" class="mark-all-read">すべて既読にする</button>
+                        </div>
+                        <div id="notificationList" class="notification-list">
+                            <p class="no-notifications">新しい通知はありません</p>
+                        </div>
+                    </div>
+                </div>
+                <span id="userName"></span>
+                <button onclick="logout()" class="logout-btn">ログアウト</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="nav-btn active" onclick="showSection('tasks')">タスク管理</button>
+        <button class="nav-btn" onclick="showSection('master')" id="masterBtn">マスター管理</button>
+    </nav>
+
+    <main class="main-content">
+        <!-- タスク管理セクション -->
+        <section id="tasksSection" class="content-section active">
+            <div class="toolbar">
+                <button onclick="openTaskModal()" class="add-btn">新規タスク追加</button>
+                
+                <div class="filter-controls">
+                    <select id="categoryFilter" onchange="filterByCategory()">
+                        <option value="all">すべてのタスク</option>
+                        <option value="department">部署タスク</option>
+                        <option value="project">プロジェクトタスク</option>
+                        <option value="personal">個人タスク</option>
+                    </select>
+                    
+                    <select id="filterType" onchange="updateFilterOptions()">
+                        <option value="">絞り込みなし</option>
+                        <option value="assignee">担当者で絞り込み</option>
+                        <option value="status">ステータスで絞り込み</option>
+                    </select>
+                    
+                    <select id="filterValue" onchange="filterTasks()">
+                        <option value="">選択してください</option>
+                    </select>
+                    
+                    <select id="sortBy" onchange="applySorting()">
+                        <option value="">並び替え</option>
+                        <option value="priority">優先度順</option>
+                        <option value="startDate">開始日順</option>
+                        <option value="endDate">終了日順</option>
+                        <option value="status">ステータス順</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="task-display">
+                <div class="task-box unified-box">
+                    <h2 id="taskBoxTitle">すべてのタスク</h2>
+                    <div class="task-list" id="taskList"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- マスター管理セクション -->
+        <section id="masterSection" class="content-section">
+            <div class="master-container">
+                <div class="master-box">
+                    <h2>人員マスター</h2>
+                    <button onclick="openPersonModal()" class="add-btn-small">追加</button>
+                    <div id="personList" class="master-list"></div>
+                </div>
+
+                <div class="master-box">
+                    <h2>プロジェクトマスター</h2>
+                    <button onclick="openProjectModal()" class="add-btn-small">追加</button>
+                    <div id="projectList" class="master-list"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- タスク追加モーダル -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTaskModal()">&times;</span>
+            <h2>新規タスク追加</h2>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label>タスク名 *</label>
+                    <input type="text" id="taskName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>タスク内容 *</label>
+                    <textarea id="taskContent" required rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>タスクタイプ *</label>
+                    <select id="taskType" onchange="updateAssigneeOptions()" required>
+                        <option value="">選択してください</option>
+                        <option value="department">部署タスク</option>
+                        <option value="project">プロジェクトタスク</option>
+                        <option value="personal">個人タスク</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>優先度 *</label>
+                    <select id="taskPriority" required>
+                        <option value="medium">中</option>
+                        <option value="high">高</option>
+                        <option value="low">低</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="projectGroup" style="display: none;">
+                    <label>プロジェクト</label>
+                    <select id="project">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="assigneeGroup" style="display: none;">
+                    <label>担当者</label>
+                    <select id="assignee">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>開始日</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>終了日</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">タスクを追加</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 人員追加モーダル -->
+    <div id="personModal" class="modal">
+        <div class="modal-content small">
+            <span class="close" onclick="closePersonModal()">&times;</span>
+            <h2>人員追加</h2>
+            <form id="personForm">
+                <div class="form-group">
+                    <label>名前 *</label>
+                    <input type="text" id="personName" required>
+                </div>
+                <div class="form-group">
+                    <label>部署</label>
+                    <input type="text" id="personDepartment">
+                </div>
+                <button type="submit" class="submit-btn">追加</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- プロジェクト追加モーダル -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content small">
+            <span class="close" onclick="closeProjectModal()">&times;</span>
+            <h2>プロジェクト追加</h2>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label>プロジェクト名 *</label>
+                    <input type="text" id="projectName" required>
+                </div>
+                <div class="form-group">
+                    <label>説明</label>
+                    <textarea id="projectDescription" rows="3"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">追加</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
