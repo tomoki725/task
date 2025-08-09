@@ -576,10 +576,33 @@ body {
     font-size: 12px;
     color: #fff;
     padding: 3px 8px;
-    background: #667eea;
     border-radius: 12px;
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.assignee-color-blue {
+    background: #667eea;
+}
+
+.assignee-color-green {
+    background: #48bb78;
+}
+
+.assignee-color-purple {
+    background: #9f7aea;
+}
+
+.assignee-color-orange {
+    background: #ed8936;
+}
+
+.assignee-color-pink {
+    background: #ed64a6;
+}
+
+.assignee-color-teal {
+    background: #38b2ac;
 }
 
 .unread-indicator {

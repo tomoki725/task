@@ -114,7 +114,8 @@ function createTaskElement(task) {
     // 担当者情報（未読コメントがある場合は目玉マークを追加）
     let assigneeInfo = '';
     if (task.assignee) {
-        assigneeInfo = `<span class="assignee-info">${task.assignee}${hasUnreadComments ? ' <span class="unread-indicator">👁</span>' : ''}</span>`;
+        const colorClass = getAssigneeColorClass(task.assignee);
+        assigneeInfo = `<span class="assignee-info assignee-color-${colorClass}">${task.assignee}${hasUnreadComments ? ' <span class="unread-indicator">👁</span>' : ''}</span>`;
     }
     
     div.innerHTML = `
@@ -136,6 +137,19 @@ function createTaskElement(task) {
     `;
     
     return div;
+}
+
+// 担当者名から色クラスを生成
+function getAssigneeColorClass(assigneeName) {
+    if (!assigneeName) return 'blue';
+    
+    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'teal'];
+    // 名前から簡単なハッシュ値を生成
+    let hash = 0;
+    for (let i = 0; i < assigneeName.length; i++) {
+        hash += assigneeName.charCodeAt(i);
+    }
+    return colors[hash % colors.length];
 }
 
 // タスク詳細を開く
