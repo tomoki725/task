@@ -8,6 +8,9 @@ class DataManager {
         // タスクデータの初期化
         if (!localStorage.getItem('tasks')) {
             localStorage.setItem('tasks', JSON.stringify([]));
+        } else {
+            // 既存タスクにタスクIDを付与（移行処理）
+            this.migrateTaskIds();
         }
 
         // 人員マスターの初期化
@@ -27,6 +30,44 @@ class DataManager {
                 { id: 2, name: 'B社案件', description: 'B社システム更新' }
             ];
             localStorage.setItem('projects', JSON.stringify(defaultProjects));
+        }
+    }
+
+    // 既存タスクにタスクIDを付与する移行処理
+    migrateTaskIds() {
+        const tasks = this.getTasks();
+        let needsUpdate = false;
+        
+        // 日付ごとのカウンター管理
+        const dateCounters = {};
+        
+        tasks.forEach(task => {
+            if (!task.taskId) {
+                needsUpdate = true;
+                
+                // タスクの作成日からIDを生成
+                const createdDate = task.createdAt ? new Date(task.createdAt) : new Date(task.id || Date.now());
+                const dateStr = createdDate.toISOString().slice(0,10).replace(/-/g, '');
+                
+                // その日のカウンターを初期化または増加
+                if (!dateCounters[dateStr]) {
+                    // その日の既存タスクを数える
+                    const existingCount = tasks.filter(t => 
+                        t.taskId && t.taskId.startsWith(`T-${dateStr}`)
+                    ).length;
+                    dateCounters[dateStr] = existingCount;
+                }
+                
+                dateCounters[dateStr]++;
+                const nextNumber = String(dateCounters[dateStr]).padStart(3, '0');
+                task.taskId = `T-${dateStr}-${nextNumber}`;
+            }
+        });
+        
+        // 更新が必要な場合のみ保存
+        if (needsUpdate) {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            console.log('既存タスクにタスクIDを付与しました');
         }
     }
 
