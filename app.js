@@ -107,6 +107,16 @@ function createTaskElement(task) {
         `<span class="task-id">[${task.taskId}]</span>` : 
         `<span class="task-id">[T-${new Date(task.createdAt || Date.now()).toISOString().slice(0,10).replace(/-/g, '')}-OLD]</span>`;
     
+    // 未読コメントチェック
+    const currentUser = sessionStorage.getItem('userId');
+    const hasUnreadComments = dataManager.hasUnreadComments(task.id, currentUser);
+    
+    // 担当者情報（未読コメントがある場合は目玉マークを追加）
+    let assigneeInfo = '';
+    if (task.assignee) {
+        assigneeInfo = `<span class="assignee-info">${task.assignee}${hasUnreadComments ? ' <span class="unread-indicator">👁</span>' : ''}</span>`;
+    }
+    
     div.innerHTML = `
         <div class="task-row">
             <div class="task-main">
@@ -118,7 +128,7 @@ function createTaskElement(task) {
                     ${priorityDisplay}
                     <span class="task-status-compact status-${task.status}">${task.status}</span>
                     ${deadlineInfo}
-                    ${task.assignee ? `<span class="assignee-info">${task.assignee}</span>` : ''}
+                    ${assigneeInfo}
                 </div>
             </div>
             <button onclick="openTaskDetail(${task.id})" class="detail-btn-compact">詳細</button>

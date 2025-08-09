@@ -329,6 +329,18 @@ class DataManager {
         }
     }
 
+    // タスクに未読コメントがあるかチェック
+    hasUnreadComments(taskId, userId) {
+        const comments = this.getComments(taskId);
+        if (comments.length === 0) return false;
+        
+        // いずれかのコメントが未読ならtrue
+        return comments.some(comment => {
+            const readBy = comment.readBy || [];
+            return !readBy.includes(userId);
+        });
+    }
+
     // 通知関連メソッド
     getNotifications(userId) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');

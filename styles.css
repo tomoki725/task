@@ -580,6 +580,22 @@ body {
     border-radius: 10px;
 }
 
+.unread-indicator {
+    font-size: 14px;
+    margin-left: 2px;
+    display: inline-block;
+    animation: eyeBlink 2s infinite;
+}
+
+@keyframes eyeBlink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
 /* モーダル */
 .modal {
     display: none;
