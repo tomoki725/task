@@ -43,6 +43,13 @@
             <div class="toolbar">
                 <button onclick="openTaskModal()" class="add-btn">新規タスク追加</button>
                 
+                <!-- タスクID検索 -->
+                <div class="task-id-search">
+                    <input type="text" id="taskIdSearchInput" placeholder="タスクIDを入力 (例: T-20250109-001)" />
+                    <button onclick="searchByTaskId()" class="search-btn">検索</button>
+                    <button onclick="clearTaskIdSearch()" class="clear-search-btn">クリア</button>
+                </div>
+                
                 <div class="filter-controls">
                     <select id="categoryFilter" onchange="filterByCategory()">
                         <option value="all">すべてのタスク</option>

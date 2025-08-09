@@ -174,6 +174,12 @@ class DataManager {
         return tasks.find(t => t.id === parseInt(taskId));
     }
 
+    // タスクIDで検索
+    getTaskByTaskId(taskId) {
+        const tasks = this.getTasks();
+        return tasks.find(t => t.taskId === taskId);
+    }
+
     // 人員マスター関連メソッド
     getPersons() {
         return JSON.parse(localStorage.getItem('persons') || '[]');

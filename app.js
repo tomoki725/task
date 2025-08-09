@@ -495,6 +495,41 @@ function applySorting() {
     filterTasks();
 }
 
+// タスクID検索
+function searchByTaskId() {
+    const searchInput = document.getElementById('taskIdSearchInput');
+    const taskId = searchInput.value.trim();
+    
+    if (!taskId) {
+        alert('タスクIDを入力してください');
+        return;
+    }
+    
+    const task = dataManager.getTaskByTaskId(taskId);
+    const taskList = document.getElementById('taskList');
+    
+    if (!task) {
+        taskList.innerHTML = `<p style="text-align: center; padding: 20px; color: #e53e3e;">タスクID「${taskId}」は見つかりませんでした</p>`;
+        return;
+    }
+    
+    // 検索結果のタスクのみ表示
+    taskList.innerHTML = '';
+    const taskElement = createTaskElement(task);
+    taskList.appendChild(taskElement);
+    
+    // タイトルを更新
+    document.getElementById('taskBoxTitle').textContent = `検索結果: ${taskId}`;
+}
+
+// タスクID検索をクリア
+function clearTaskIdSearch() {
+    document.getElementById('taskIdSearchInput').value = '';
+    document.getElementById('taskBoxTitle').textContent = 'すべてのタスク';
+    document.getElementById('categoryFilter').value = 'all';
+    filterTasks();
+}
+
 // モーダル外クリックで閉じる
 window.onclick = function(event) {
     if (event.target.className === 'modal') {
