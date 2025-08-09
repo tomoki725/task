@@ -573,26 +573,31 @@ body {
 }
 
 .assignee-info {
-    font-size: 11px;
-    color: #666;
-    padding: 2px 6px;
-    background: #e0e0e0;
-    border-radius: 10px;
+    font-size: 12px;
+    color: #fff;
+    padding: 3px 8px;
+    background: #667eea;
+    border-radius: 12px;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .unread-indicator {
-    font-size: 14px;
-    margin-left: 2px;
+    font-size: 16px;
+    margin-left: 4px;
     display: inline-block;
-    animation: eyeBlink 2s infinite;
+    animation: eyeBlink 1.5s infinite;
+    filter: drop-shadow(0 0 2px rgba(255, 100, 0, 0.5));
 }
 
 @keyframes eyeBlink {
     0%, 100% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
-        opacity: 0.5;
+        opacity: 0.7;
+        transform: scale(1.1);
     }
 }
 
