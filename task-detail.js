@@ -37,6 +37,12 @@ function loadTaskDetail() {
 }
 
 function displayTaskDetail() {
+    // タスクIDの表示（既存データ対応）
+    const taskIdText = currentTask.taskId ? 
+        currentTask.taskId : 
+        `T-${new Date(currentTask.createdAt || Date.now()).toISOString().slice(0,10).replace(/-/g, '')}-OLD`;
+    document.getElementById('taskIdDisplay').textContent = `タスクID: ${taskIdText}`;
+    
     document.getElementById('taskTitle').textContent = currentTask.name;
     document.getElementById('taskType').textContent = getTaskTypeLabel(currentTask.type);
     document.getElementById('taskStatus').value = currentTask.status || '未対応';

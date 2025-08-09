@@ -102,10 +102,18 @@ function createTaskElement(task) {
         deadlineInfo = `<span class="deadline-info">~${task.endDate}</span>`;
     }
     
+    // タスクIDの表示（既存データ対応）
+    const taskIdDisplay = task.taskId ? 
+        `<span class="task-id">[${task.taskId}]</span>` : 
+        `<span class="task-id">[T-${new Date(task.createdAt || Date.now()).toISOString().slice(0,10).replace(/-/g, '')}-OLD]</span>`;
+    
     div.innerHTML = `
         <div class="task-row">
             <div class="task-main">
-                <h3 class="task-name-compact">${task.name}</h3>
+                <div class="task-title-row">
+                    ${taskIdDisplay}
+                    <h3 class="task-name-compact">${task.name}</h3>
+                </div>
                 <div class="task-info-compact">
                     ${priorityDisplay}
                     <span class="task-status-compact status-${task.status}">${task.status}</span>

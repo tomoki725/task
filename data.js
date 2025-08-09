@@ -35,9 +35,20 @@ class DataManager {
         return JSON.parse(localStorage.getItem('tasks') || '[]');
     }
 
+    // タスクID生成関数
+    generateTaskId() {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0,10).replace(/-/g, '');
+        const tasks = this.getTasks();
+        const todayTasks = tasks.filter(t => t.taskId && t.taskId.startsWith(`T-${dateStr}`));
+        const nextNumber = String(todayTasks.length + 1).padStart(3, '0');
+        return `T-${dateStr}-${nextNumber}`;
+    }
+
     saveTask(task) {
         const tasks = this.getTasks();
         task.id = Date.now();
+        task.taskId = this.generateTaskId(); // 表示用ID
         task.createdAt = new Date().toISOString();
         task.status = '未対応';
         task.history = [{
