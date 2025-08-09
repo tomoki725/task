@@ -34,6 +34,9 @@ class DataManager {
 
         // 既存コメントの移行（既読機能の追加）
         this.migrateComments();
+        
+        // 担当者の複数対応への移行
+        this.migrateAssignees();
     }
 
     // 既存タスクにタスクIDを付与する移行処理
@@ -79,14 +82,34 @@ class DataManager {
         return JSON.parse(localStorage.getItem('tasks') || '[]');
     }
 
-    // タスクID生成関数
+    // タスクID生成関数（ランダム英数字版）
     generateTaskId() {
         const today = new Date();
         const dateStr = today.toISOString().slice(0,10).replace(/-/g, '');
         const tasks = this.getTasks();
-        const todayTasks = tasks.filter(t => t.taskId && t.taskId.startsWith(`T-${dateStr}`));
-        const nextNumber = String(todayTasks.length + 1).padStart(3, '0');
-        return `T-${dateStr}-${nextNumber}`;
+        
+        // ランダムIDを生成（重複しないまで繰り返す）
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let taskId;
+        let attempts = 0;
+        const maxAttempts = 1000; // 無限ループ防止
+        
+        do {
+            let randomStr = '';
+            for (let i = 0; i < 5; i++) {
+                randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            taskId = `T-${dateStr}-${randomStr}`;
+            attempts++;
+            
+            if (attempts > maxAttempts) {
+                // 万が一の場合はタイムスタンプを使用
+                taskId = `T-${dateStr}-${Date.now()}`;
+                break;
+            }
+        } while (tasks.some(t => t.taskId === taskId));
+        
+        return taskId;
     }
 
     saveTask(task) {
@@ -155,10 +178,17 @@ class DataManager {
             localStorage.setItem('tasks', JSON.stringify(tasks));
             
             // 担当者への通知を作成（自分自身の変更でも、担当者として通知を受け取る）
-            if (hasChanges && task.assignee) {
+            if (hasChanges && task.assignees && task.assignees.length > 0) {
                 notificationDetails.taskName = task.name;
                 notificationDetails.changedBy = currentUser;
-                this.createNotification(taskId, 'update', notificationDetails);
+                
+                // 全担当者に通知を作成
+                task.assignees.forEach(assignee => {
+                    this.createNotification(taskId, 'update', {
+                        ...notificationDetails,
+                        notifyTo: assignee
+                    });
+                });
             }
             
             return tasks[taskIndex];
@@ -246,7 +276,12 @@ class DataManager {
     // コメント関連メソッド
     getComments(taskId) {
         const comments = JSON.parse(localStorage.getItem('comments') || '{}');
-        return comments[taskId] || [];
+        const taskComments = comments[taskId];
+        // 確実に配列を返すようにする
+        if (!taskComments || !Array.isArray(taskComments)) {
+            return [];
+        }
+        return taskComments;
     }
 
     addComment(taskId, comment) {
@@ -269,15 +304,18 @@ class DataManager {
         
         // タスクの担当者に通知を作成（コメント作成者と担当者が異なる場合）
         const task = this.getTaskById(taskId);
-        if (task && task.assignee) {
-            // コメント作成者がタスク担当者と異なる場合のみ通知
-            if (currentUser !== task.assignee) {
-                this.createNotification(taskId, 'comment', {
-                    commentText: comment,
-                    taskName: task.name,
-                    commentedBy: currentUser
-                });
-            }
+        if (task && task.assignees && task.assignees.length > 0) {
+            // 全担当者に通知を作成（コメント作成者以外）
+            task.assignees.forEach(assignee => {
+                if (currentUser !== assignee) {
+                    this.createNotification(taskId, 'comment', {
+                        commentText: comment,
+                        taskName: task.name,
+                        commentedBy: currentUser,
+                        notifyTo: assignee
+                    });
+                }
+            });
         }
         
         return newComment;
@@ -329,16 +367,64 @@ class DataManager {
         }
     }
 
+    // 既存タスクの担当者を配列形式に移行
+    migrateAssignees() {
+        const tasks = this.getTasks();
+        let needsUpdate = false;
+        
+        tasks.forEach(task => {
+            // assigneeフィールドが存在し、assigneesフィールドが存在しない場合
+            if (task.assignee && !task.assignees) {
+                needsUpdate = true;
+                // 単一担当者を配列形式に変換
+                task.assignees = task.assignee ? [task.assignee] : [];
+                // 後方互換性のためassigneeフィールドは残す
+            } else if (!task.assignees) {
+                // assigneesフィールドが存在しない場合は空配列で初期化
+                needsUpdate = true;
+                task.assignees = [];
+            }
+        });
+        
+        if (needsUpdate) {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            console.log('既存タスクの担当者を複数対応に移行しました');
+        }
+    }
+
     // タスクに未読コメントがあるかチェック
     hasUnreadComments(taskId, userId) {
         const comments = this.getComments(taskId);
-        if (comments.length === 0) return false;
+        
+        // コメントが存在しない、または0件の場合はfalse
+        if (!comments || comments.length === 0) {
+            return false;
+        }
         
         // いずれかのコメントが未読ならtrue
         return comments.some(comment => {
             const readBy = comment.readBy || [];
             return !readBy.includes(userId);
         });
+    }
+
+    // 担当者名の色マッピングを取得（重複回避）
+    getAssigneeColorMapping() {
+        const persons = this.getPersons();
+        const colors = [
+            'blue', 'green', 'purple', 'orange', 'pink', 'teal', 
+            'red', 'indigo', 'amber', 'cyan', 'lime', 'rose',
+            'slate', 'emerald', 'sky', 'violet', 'fuchsia', 'yellow', 'gray', 'stone'
+        ];
+        
+        const mapping = {};
+        persons.forEach((person, index) => {
+            // 人員マスターの順序に基づいて色を割り当て
+            const colorIndex = index % colors.length;
+            mapping[person.name] = colors[colorIndex];
+        });
+        
+        return mapping;
     }
 
     // 通知関連メソッド
@@ -349,7 +435,11 @@ class DataManager {
         // 現在のユーザーが担当者のタスクに関する通知のみフィルタリング
         return notifications.filter(notif => {
             const task = tasks.find(t => t.id === notif.taskId);
-            return task && task.assignee === userId;
+            return task && (
+                (task.assignees && task.assignees.includes(userId)) ||
+                (notif.details && notif.details.notifyTo === userId) ||
+                (task.assignee === userId) // 後方互換性
+            );
         });
     }
 
@@ -394,7 +484,11 @@ class DataManager {
         
         notifications.forEach(notif => {
             const task = tasks.find(t => t.id === notif.taskId);
-            if (task && task.assignee === userId) {
+            if (task && (
+                (task.assignees && task.assignees.includes(userId)) ||
+                (notif.details && notif.details.notifyTo === userId) ||
+                (task.assignee === userId) // 後方互換性
+            )) {
                 notif.isRead = true;
             }
         });

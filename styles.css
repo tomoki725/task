@@ -10,6 +10,62 @@ body {
     color: #333;
 }
 
+/* Buzzlogロゴスタイル */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+}
+
+.logo-icon {
+    font-size: 32px;
+    filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.3));
+}
+
+.logo-text {
+    display: flex;
+    align-items: baseline;
+    font-family: 'Arial Black', 'Helvetica', sans-serif;
+    font-weight: 900;
+}
+
+.logo-buzz {
+    font-size: 36px;
+    color: #f59e0b;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo-log {
+    font-size: 36px;
+    color: #1f2937;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ヘッダー用コンパクトロゴ */
+.logo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-header .logo-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.3));
+}
+
+.logo-header .logo-buzz {
+    font-size: 28px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.logo-header .logo-log {
+    font-size: 28px;
+    color: #fbbf24;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
 /* ログインページ */
 .login-page {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -499,6 +555,41 @@ body {
     background: #5a67d8;
 }
 
+.task-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.delete-btn-compact {
+    padding: 4px 10px;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.3s;
+}
+
+.delete-btn-compact:hover {
+    background: #c53030;
+}
+
+/* プロジェクトバッジ */
+.project-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #e9d8fd;
+    color: #553c9a;
+    border: 1px solid #b794f4;
+    margin-right: 4px;
+}
+
 /* コンパクトバッジ */
 .priority-badge-compact {
     display: inline-flex;
@@ -605,22 +696,82 @@ body {
     background: #38b2ac;
 }
 
-.unread-indicator {
-    font-size: 16px;
-    margin-left: 4px;
-    display: inline-block;
-    animation: eyeBlink 1.5s infinite;
-    filter: drop-shadow(0 0 2px rgba(255, 100, 0, 0.5));
+.assignee-color-red {
+    background: #e53e3e;
 }
 
-@keyframes eyeBlink {
+.assignee-color-indigo {
+    background: #5a67d8;
+}
+
+.assignee-color-amber {
+    background: #f6ad55;
+}
+
+.assignee-color-cyan {
+    background: #0891b2;
+}
+
+.assignee-color-lime {
+    background: #84cc16;
+}
+
+.assignee-color-rose {
+    background: #f43f5e;
+}
+
+.assignee-color-slate {
+    background: #64748b;
+}
+
+.assignee-color-emerald {
+    background: #10b981;
+}
+
+.assignee-color-sky {
+    background: #0ea5e9;
+}
+
+.assignee-color-violet {
+    background: #8b5cf6;
+}
+
+.assignee-color-fuchsia {
+    background: #d946ef;
+}
+
+.assignee-color-yellow {
+    background: #eab308;
+}
+
+.assignee-color-gray {
+    background: #6b7280;
+}
+
+.assignee-color-stone {
+    background: #78716c;
+}
+
+.unread-indicator {
+    margin-left: 4px;
+    display: inline-block;
+    animation: bulbGlow 2s infinite;
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+}
+
+.bulb-icon {
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 3px rgba(245, 158, 11, 0.4));
+}
+
+@keyframes bulbGlow {
     0%, 100% {
         opacity: 1;
-        transform: scale(1);
+        filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
     }
     50% {
-        opacity: 0.7;
-        transform: scale(1.1);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.9)) drop-shadow(0 0 12px rgba(252, 211, 77, 0.5));
     }
 }
 
@@ -1169,6 +1320,189 @@ body {
 
 .task-header-info {
     flex: 1;
+}
+
+/* チェックボックスグループ */
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+}
+
+/* プルダウン式チェックボックス */
+.dropdown-checkbox-container {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-checkbox-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.dropdown-checkbox-btn:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.dropdown-checkbox-btn.active {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.dropdown-text {
+    flex: 1;
+    text-align: left;
+    color: #333;
+}
+
+.dropdown-text.placeholder {
+    color: #999;
+}
+
+.dropdown-arrow {
+    color: #666;
+    transition: transform 0.3s;
+    font-size: 12px;
+}
+
+.dropdown-arrow.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-checkbox-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 100%;
+    width: max-content;
+    max-width: 300px;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dropdown-checkbox-menu.show {
+    display: block;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.dropdown-checkbox-menu .checkbox-item {
+    padding: 6px 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-checkbox-menu .checkbox-item:last-child {
+    border-bottom: none;
+}
+
+.checkbox-item:hover {
+    background: #f0f0f0;
+}
+
+.checkbox-item label {
+    flex: 1;
+    margin: 0;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+    white-space: nowrap;
+    padding-right: 4px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* 複数担当者バッジ表示 */
+.assignees-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.assignee-badge {
+    font-size: 11px;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+}
+
+.assignees-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px;
+}
+
+.assignees-display.empty::before {
+    content: "なし";
+    color: #999;
+    font-style: italic;
+}
+
+/* 選択済みプレビューエリア */
+.selected-assignees-preview {
+    margin-top: 8px;
+    min-height: 24px;
+}
+
+.selected-assignees-preview:empty::before {
+    content: "担当者が選択されていません";
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
 }
 
 /* レスポンシブ */

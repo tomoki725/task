@@ -111,12 +111,45 @@ function createTaskElement(task) {
     const currentUser = sessionStorage.getItem('userId');
     const hasUnreadComments = dataManager.hasUnreadComments(task.id, currentUser);
     
-    // 担当者情報（未読コメントがある場合は目玉マークを追加）
-    let assigneeInfo = '';
-    if (task.assignee) {
-        const colorClass = getAssigneeColorClass(task.assignee);
-        assigneeInfo = `<span class="assignee-info assignee-color-${colorClass}">${task.assignee}${hasUnreadComments ? ' <span class="unread-indicator">👁</span>' : ''}</span>`;
+    // プロジェクト名の表示
+    let projectBadge = '';
+    if (task.project) {
+        projectBadge = `<span class="project-badge">${task.project}</span>`;
     }
+    
+    // 複数担当者情報（最初の担当者のみ未読コメントマークを表示）
+    let assigneeInfo = '';
+    const assignees = task.assignees || (task.assignee ? [task.assignee] : []);
+    
+    if (assignees.length > 0) {
+        const assigneeBadges = assignees.map((assignee, index) => {
+            const colorClass = getAssigneeColorClass(assignee);
+            // 未読コメントマークは最初の担当者のみ表示
+            const bulbIcon = (index === 0 && hasUnreadComments) ? `
+                <span class="unread-indicator">
+                    <svg width="16" height="20" viewBox="0 0 24 30" class="bulb-icon">
+                        <!-- 電球の球体部分 -->
+                        <circle cx="12" cy="12" r="8" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5"/>
+                        <!-- フィラメント -->
+                        <path d="M8 9 Q12 7 16 9 M8 12 Q12 10 16 12 M8 15 Q12 13 16 15" stroke="#f97316" stroke-width="1" fill="none"/>
+                        <!-- ネジ部分 -->
+                        <rect x="10" y="19" width="4" height="2" fill="#9ca3af"/>
+                        <rect x="10" y="21" width="4" height="2" fill="#9ca3af"/>
+                        <rect x="10" y="23" width="4" height="2" fill="#9ca3af"/>
+                        <!-- 光の効果 -->
+                        <circle cx="12" cy="12" r="10" fill="none" stroke="#fcd34d" stroke-width="0.5" opacity="0.6"/>
+                    </svg>
+                </span>
+            ` : '';
+            return `<span class="assignee-badge assignee-color-${colorClass}">${assignee}${bulbIcon}</span>`;
+        }).join('');
+        
+        assigneeInfo = `<div class="assignees-badges">${assigneeBadges}</div>`;
+    }
+    
+    // ステータスが「終了」の場合のみ削除ボタンを表示
+    const deleteButton = task.status === '終了' ? 
+        `<button onclick="deleteTaskConfirm(${task.id})" class="delete-btn-compact">削除</button>` : '';
     
     div.innerHTML = `
         <div class="task-row">
@@ -129,32 +162,81 @@ function createTaskElement(task) {
                     ${priorityDisplay}
                     <span class="task-status-compact status-${task.status}">${task.status}</span>
                     ${deadlineInfo}
+                    ${projectBadge}
                     ${assigneeInfo}
                 </div>
             </div>
-            <button onclick="openTaskDetail(${task.id})" class="detail-btn-compact">詳細</button>
+            <div class="task-actions">
+                <button onclick="openTaskDetail(${task.id})" class="detail-btn-compact">詳細</button>
+                ${deleteButton}
+            </div>
         </div>
     `;
     
     return div;
 }
 
-// 担当者名から色クラスを生成
+// 担当者名から色クラスを生成（人員マスター連動で重複回避）
 function getAssigneeColorClass(assigneeName) {
     if (!assigneeName) return 'blue';
     
-    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'teal'];
-    // 名前から簡単なハッシュ値を生成
-    let hash = 0;
-    for (let i = 0; i < assigneeName.length; i++) {
-        hash += assigneeName.charCodeAt(i);
+    // 人員マスター連動の色マッピングを取得
+    const colorMapping = dataManager.getAssigneeColorMapping();
+    
+    // マッピングに存在する場合はその色を返す
+    if (colorMapping[assigneeName]) {
+        return colorMapping[assigneeName];
     }
-    return colors[hash % colors.length];
+    
+    // マッピングにない場合（新規追加などの場合）はハッシュ方式でフォールバック
+    const colors = [
+        'blue', 'green', 'purple', 'orange', 'pink', 'teal', 
+        'red', 'indigo', 'amber', 'cyan', 'lime', 'rose',
+        'slate', 'emerald', 'sky', 'violet', 'fuchsia', 'yellow', 'gray', 'stone'
+    ];
+    
+    // FNV-1aハッシュアルゴリズム
+    let fnvHash = 2166136261;
+    for (let i = 0; i < assigneeName.length; i++) {
+        fnvHash ^= assigneeName.charCodeAt(i);
+        fnvHash += (fnvHash << 1) + (fnvHash << 4) + (fnvHash << 7) + (fnvHash << 8) + (fnvHash << 24);
+    }
+    
+    // djb2ハッシュアルゴリズム
+    let djb2Hash = 5381;
+    for (let i = 0; i < assigneeName.length; i++) {
+        djb2Hash = ((djb2Hash << 5) + djb2Hash) + assigneeName.charCodeAt(i);
+    }
+    
+    // 2つのハッシュ値をXORで組み合わせてより良い分散性を実現
+    const combinedHash = fnvHash ^ djb2Hash;
+    
+    return colors[Math.abs(combinedHash) % colors.length];
 }
 
 // タスク詳細を開く
 function openTaskDetail(taskId) {
     window.location.href = `task-detail.html?id=${taskId}`;
+}
+
+// タスク削除確認
+function deleteTaskConfirm(taskId) {
+    const task = dataManager.getTaskById(taskId);
+    if (!task) {
+        alert('タスクが見つかりません');
+        return;
+    }
+    
+    if (task.status !== '終了') {
+        alert('終了状態のタスクのみ削除できます');
+        return;
+    }
+    
+    if (confirm(`タスク「${task.name}」を完全に削除しますか？\nこの操作は取り消せません。`)) {
+        dataManager.deleteTask(taskId);
+        loadTasks(); // タスクリストを再読み込み
+        alert('タスクを削除しました');
+    }
 }
 
 // タスクモーダル
@@ -174,7 +256,6 @@ function updateAssigneeOptions() {
     const projectGroup = document.getElementById('projectGroup');
     const assigneeGroup = document.getElementById('assigneeGroup');
     const projectSelect = document.getElementById('project');
-    const assigneeSelect = document.getElementById('assignee');
     
     // 一旦両方非表示
     projectGroup.style.display = 'none';
@@ -182,7 +263,9 @@ function updateAssigneeOptions() {
     
     // セレクトボックスをクリア
     projectSelect.innerHTML = '<option value="">選択してください</option>';
-    assigneeSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // ドロップダウンをリセット
+    resetAssigneeDropdown();
     
     if (!taskType) {
         // タスクタイプが選択されていない場合は何もしない
@@ -207,13 +290,8 @@ function updateAssigneeOptions() {
                 projectSelect.appendChild(option);
             });
             
-            // 担当者選択肢を追加
-            persons.forEach(person => {
-                const option = document.createElement('option');
-                option.value = person.name;
-                option.textContent = person.name;
-                assigneeSelect.appendChild(option);
-            });
+            // 担当者ドロップダウンを設定
+            setupAssigneeDropdown(persons);
             break;
             
         case 'department':
@@ -221,15 +299,104 @@ function updateAssigneeOptions() {
             // 部署タスクまたは個人タスクの場合
             assigneeGroup.style.display = 'block';
             
-            // 担当者選択肢を追加
-            persons.forEach(person => {
-                const option = document.createElement('option');
-                option.value = person.name;
-                option.textContent = person.name;
-                assigneeSelect.appendChild(option);
-            });
+            // 担当者ドロップダウンを設定
+            setupAssigneeDropdown(persons);
             break;
     }
+}
+
+// ドロップダウン制御関数群
+function setupAssigneeDropdown(persons) {
+    const dropdownMenu = document.getElementById('assigneeDropdownMenu');
+    dropdownMenu.innerHTML = '';
+    
+    // チェックボックスアイテムを追加
+    persons.forEach(person => {
+        const checkboxItem = document.createElement('div');
+        checkboxItem.className = 'checkbox-item';
+        checkboxItem.innerHTML = `
+            <label for="assignee_${person.id}">${person.name}</label>
+            <input type="checkbox" id="assignee_${person.id}" value="${person.name}" onchange="updateAssigneeDropdownDisplay()">
+        `;
+        dropdownMenu.appendChild(checkboxItem);
+    });
+    
+    // ドロップダウンボタンイベント設定
+    const dropdownBtn = document.getElementById('assigneeDropdownBtn');
+    dropdownBtn.onclick = () => toggleAssigneeDropdown();
+    
+    // 外部クリック時に閉じる
+    setupDropdownOutsideClick();
+}
+
+function toggleAssigneeDropdown() {
+    const dropdownBtn = document.getElementById('assigneeDropdownBtn');
+    const dropdownMenu = document.getElementById('assigneeDropdownMenu');
+    const arrow = dropdownBtn.querySelector('.dropdown-arrow');
+    
+    const isOpen = dropdownMenu.style.display === 'block';
+    
+    if (isOpen) {
+        dropdownMenu.style.display = 'none';
+        dropdownMenu.classList.remove('show');
+        dropdownBtn.classList.remove('active');
+        arrow.classList.remove('open');
+    } else {
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.classList.add('show');
+        dropdownBtn.classList.add('active');
+        arrow.classList.add('open');
+    }
+}
+
+function updateAssigneeDropdownDisplay() {
+    const dropdownText = document.getElementById('assigneeDropdownBtn').querySelector('.dropdown-text');
+    const preview = document.getElementById('assigneePreview');
+    const checkedBoxes = document.querySelectorAll('#assigneeDropdownMenu input[type="checkbox"]:checked');
+    
+    if (checkedBoxes.length === 0) {
+        dropdownText.textContent = '担当者を選択';
+        dropdownText.classList.add('placeholder');
+        preview.innerHTML = '';
+    } else {
+        dropdownText.textContent = `${checkedBoxes.length}名選択中`;
+        dropdownText.classList.remove('placeholder');
+        
+        // プレビューバッジを更新
+        const badges = Array.from(checkedBoxes).map(cb => {
+            const colorClass = getAssigneeColorClass(cb.value);
+            return `<span class="assignee-badge assignee-color-${colorClass}">${cb.value}</span>`;
+        }).join('');
+        
+        preview.innerHTML = `<div class="assignees-badges">${badges}</div>`;
+    }
+}
+
+function resetAssigneeDropdown() {
+    const dropdownText = document.getElementById('assigneeDropdownBtn').querySelector('.dropdown-text');
+    const preview = document.getElementById('assigneePreview');
+    const dropdownMenu = document.getElementById('assigneeDropdownMenu');
+    const arrow = document.getElementById('assigneeDropdownBtn').querySelector('.dropdown-arrow');
+    
+    dropdownText.textContent = '担当者を選択';
+    dropdownText.classList.add('placeholder');
+    preview.innerHTML = '';
+    dropdownMenu.style.display = 'none';
+    dropdownMenu.classList.remove('show');
+    document.getElementById('assigneeDropdownBtn').classList.remove('active');
+    arrow.classList.remove('open');
+}
+
+function setupDropdownOutsideClick() {
+    document.addEventListener('click', function(event) {
+        const container = document.querySelector('.dropdown-checkbox-container');
+        if (container && !container.contains(event.target)) {
+            const dropdownMenu = document.getElementById('assigneeDropdownMenu');
+            if (dropdownMenu && dropdownMenu.style.display === 'block') {
+                toggleAssigneeDropdown();
+            }
+        }
+    });
 }
 
 // タスク送信処理
@@ -237,12 +404,18 @@ function handleTaskSubmit(e) {
     e.preventDefault();
     
     const taskType = document.getElementById('taskType').value;
+    // 選択された担当者を取得（複数対応）
+    const selectedAssignees = Array.from(document.querySelectorAll('#assigneeDropdownMenu input[type="checkbox"]:checked'))
+        .map(cb => cb.value);
+    
     const task = {
         name: document.getElementById('taskName').value,
         content: document.getElementById('taskContent').value,
         type: taskType,
         priority: document.getElementById('taskPriority').value,
-        assignee: document.getElementById('assignee').value,
+        assignees: selectedAssignees,
+        // 後方互換性のため最初の担当者をassigneeにも設定
+        assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '',
         startDate: document.getElementById('startDate').value,
         endDate: document.getElementById('endDate').value
     };
@@ -437,6 +610,16 @@ function updateFilterOptions() {
             option.textContent = status;
             filterValue.appendChild(option);
         });
+    } else if (filterType === 'project') {
+        const projects = dataManager.getProjects();
+        
+        // プロジェクトを追加
+        projects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project.name;
+            option.textContent = project.name;
+            filterValue.appendChild(option);
+        });
     } else {
         // フィルタータイプが空の場合、全てのタスクを表示
         filterTasks();
@@ -463,15 +646,22 @@ function filterTasks() {
         // 担当者/ステータスフィルタ
         if (filterType && filterValue) {
             if (filterType === 'assignee') {
-                // 担当者フィルタの場合
-                // 担当者が設定されていないタスクも除外
-                if (!task.assignee || task.assignee !== filterValue) {
+                // 担当者フィルタの場合（複数担当者対応）
+                const assignees = task.assignees || (task.assignee ? [task.assignee] : []);
+                if (assignees.length === 0 || !assignees.includes(filterValue)) {
                     return false;
                 }
             }
             if (filterType === 'status') {
                 // ステータスフィルタの場合
                 if (!task.status || task.status !== filterValue) {
+                    return false;
+                }
+            }
+            if (filterType === 'project') {
+                // プロジェクトフィルタの場合
+                // プロジェクトが設定されていないタスクも除外
+                if (!task.project || task.project !== filterValue) {
                     return false;
                 }
             }

@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>タスク詳細 - 営業タスク管理ツール</title>
+    <title>タスク詳細 - Buzzlog</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header class="main-header">
         <div class="header-content">
-            <h1>タスク詳細</h1>
+            <div class="logo-header">
+                <div class="logo-icon">💡</div>
+                <div class="logo-text">
+                    <span class="logo-buzz">Buzz</span><span class="logo-log">log</span>
+                </div>
+            </div>
             <div class="header-actions">
                 <button onclick="window.location.href='dashboard.html'" class="back-btn">ダッシュボードに戻る</button>
                 <button onclick="logout()" class="logout-btn">ログアウト</button>
@@ -30,7 +35,12 @@
             <div class="task-detail-content">
                 <div class="detail-row">
                     <label>タスクタイプ:</label>
-                    <span id="taskType"></span>
+                    <span id="taskTypeDisplay"></span>
+                    <select id="taskTypeSelect" style="display: none;" onchange="onTaskTypeChange()">
+                        <option value="department">部署タスク</option>
+                        <option value="project">プロジェクトタスク</option>
+                        <option value="personal">個人タスク</option>
+                    </select>
                 </div>
 
                 <div class="detail-row">
@@ -45,14 +55,31 @@
 
                 <div class="detail-row">
                     <label>担当者:</label>
-                    <select id="taskAssignee" disabled>
-                        <option value="">なし</option>
-                    </select>
+                    <div class="assignee-container">
+                        <div id="assigneeDisplay" class="assignees-display">
+                            <!-- 担当者バッジが表示される -->
+                        </div>
+                        <div id="assigneeEditContainer" class="dropdown-checkbox-container" style="display: none;">
+                            <button type="button" id="assigneeEditDropdownBtn" class="dropdown-checkbox-btn">
+                                <span class="dropdown-text placeholder">担当者を選択</span>
+                                <span class="dropdown-arrow">▼</span>
+                            </button>
+                            <div id="assigneeEditDropdownMenu" class="dropdown-checkbox-menu" style="display: none;">
+                                <!-- 編集時のチェックボックスが表示される -->
+                            </div>
+                            <div id="assigneeEditPreview" class="selected-assignees-preview">
+                                <!-- 編集時の選択済み担当者のバッジが表示される -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="detail-row" id="projectRow" style="display: none;">
                     <label>プロジェクト:</label>
-                    <span id="taskProject"></span>
+                    <span id="taskProjectDisplay"></span>
+                    <select id="taskProjectSelect" style="display: none;">
+                        <option value="">選択してください</option>
+                    </select>
                 </div>
 
                 <div class="detail-row">

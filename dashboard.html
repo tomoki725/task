@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>営業タスク管理ツール - ダッシュボード</title>
+    <title>Buzzlog - ダッシュボード</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header class="main-header">
         <div class="header-content">
-            <h1>営業タスク管理ツール</h1>
+            <div class="logo-header">
+                <div class="logo-icon">💡</div>
+                <div class="logo-text">
+                    <span class="logo-buzz">Buzz</span><span class="logo-log">log</span>
+                </div>
+            </div>
             <div class="header-actions">
                 <div class="notification-container">
                     <button onclick="toggleNotifications()" class="notification-btn">
@@ -62,6 +67,7 @@
                         <option value="">絞り込みなし</option>
                         <option value="assignee">担当者で絞り込み</option>
                         <option value="status">ステータスで絞り込み</option>
+                        <option value="project">プロジェクトで絞り込み</option>
                     </select>
                     
                     <select id="filterValue" onchange="filterTasks()">
@@ -147,10 +153,19 @@
                 </div>
                 
                 <div class="form-group" id="assigneeGroup" style="display: none;">
-                    <label>担当者</label>
-                    <select id="assignee">
-                        <option value="">選択してください</option>
-                    </select>
+                    <label>担当者（複数選択可）</label>
+                    <div class="dropdown-checkbox-container">
+                        <button type="button" id="assigneeDropdownBtn" class="dropdown-checkbox-btn">
+                            <span class="dropdown-text placeholder">担当者を選択</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div id="assigneeDropdownMenu" class="dropdown-checkbox-menu" style="display: none;">
+                            <!-- チェックボックス一覧が動的に追加される -->
+                        </div>
+                        <div id="assigneePreview" class="selected-assignees-preview">
+                            <!-- 選択済み担当者のバッジが表示される -->
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-row">

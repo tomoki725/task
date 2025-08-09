@@ -44,32 +44,25 @@ function displayTaskDetail() {
     document.getElementById('taskIdDisplay').textContent = `タスクID: ${taskIdText}`;
     
     document.getElementById('taskTitle').textContent = currentTask.name;
-    document.getElementById('taskType').textContent = getTaskTypeLabel(currentTask.type);
+    document.getElementById('taskTypeDisplay').textContent = getTaskTypeLabel(currentTask.type);
+    document.getElementById('taskTypeSelect').value = currentTask.type || 'department';
     document.getElementById('taskStatus').value = currentTask.status || '未対応';
     
-    // 担当者セレクトボックスの設定
-    const assigneeSelect = document.getElementById('taskAssignee');
-    assigneeSelect.innerHTML = '<option value="">なし</option>';
-    
-    // 人員マスターから担当者リストを取得
-    const persons = dataManager.getPersons();
-    persons.forEach(person => {
-        const option = document.createElement('option');
-        option.value = person.name;
-        option.textContent = person.name;
-        if (currentTask.assignee === person.name) {
-            option.selected = true;
-        }
-        assigneeSelect.appendChild(option);
-    });
+    // 担当者表示の設定（複数対応）
+    displayAssignees();
+    setupAssigneeEdit();
     
     // プロジェクト情報の表示
     if (currentTask.project) {
         document.getElementById('projectRow').style.display = 'grid';
-        document.getElementById('taskProject').textContent = currentTask.project;
+        document.getElementById('taskProjectDisplay').textContent = currentTask.project;
+        document.getElementById('taskProjectSelect').value = currentTask.project;
     } else {
         document.getElementById('projectRow').style.display = 'none';
     }
+    
+    // プロジェクト選択肢を読み込み
+    loadProjectOptions();
     
     document.getElementById('taskDescription').value = currentTask.content || '';
     document.getElementById('taskStartDate').value = currentTask.startDate || '';
@@ -101,10 +94,21 @@ function enableEdit() {
     isEditMode = true;
     
     // 編集可能にする
+    document.getElementById('taskTypeDisplay').style.display = 'none';
+    document.getElementById('taskTypeSelect').style.display = 'inline-block';
     document.getElementById('taskStatus').disabled = false;
-    document.getElementById('taskAssignee').disabled = false;
     document.getElementById('taskDescription').disabled = false;
     document.getElementById('taskEndDate').disabled = false;
+    
+    // プロジェクト表示・編集の切り替え
+    if (currentTask.type === 'project') {
+        document.getElementById('taskProjectDisplay').style.display = 'none';
+        document.getElementById('taskProjectSelect').style.display = 'inline-block';
+    }
+    
+    // 担当者表示・編集の切り替え
+    document.getElementById('assigneeDisplay').style.display = 'none';
+    document.getElementById('assigneeEditContainer').style.display = 'block';
     
     // 編集ボタンを表示
     document.getElementById('editActions').style.display = 'flex';
@@ -114,10 +118,19 @@ function cancelEdit() {
     isEditMode = false;
     
     // 編集不可にする
+    document.getElementById('taskTypeDisplay').style.display = 'inline-block';
+    document.getElementById('taskTypeSelect').style.display = 'none';
     document.getElementById('taskStatus').disabled = true;
-    document.getElementById('taskAssignee').disabled = true;
     document.getElementById('taskDescription').disabled = true;
     document.getElementById('taskEndDate').disabled = true;
+    
+    // プロジェクト表示・編集の切り替え
+    document.getElementById('taskProjectDisplay').style.display = 'inline-block';
+    document.getElementById('taskProjectSelect').style.display = 'none';
+    
+    // 担当者表示・編集の切り替え
+    document.getElementById('assigneeDisplay').style.display = 'flex';
+    document.getElementById('assigneeEditContainer').style.display = 'none';
     
     // 編集ボタンを非表示
     document.getElementById('editActions').style.display = 'none';
@@ -127,12 +140,26 @@ function cancelEdit() {
 }
 
 function saveTaskChanges() {
+    // 選択された担当者を取得
+    const selectedAssignees = Array.from(document.querySelectorAll('#assigneeEditDropdownMenu input[type="checkbox"]:checked'))
+        .map(cb => cb.value);
+    
     const updates = {
+        type: document.getElementById('taskTypeSelect').value,
         status: document.getElementById('taskStatus').value,
-        assignee: document.getElementById('taskAssignee').value,
+        assignees: selectedAssignees,
+        // 後方互換性のため最初の担当者をassigneeにも設定
+        assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '',
         content: document.getElementById('taskDescription').value,
         endDate: document.getElementById('taskEndDate').value
     };
+    
+    // プロジェクトタスクの場合のみプロジェクト情報を追加
+    if (updates.type === 'project') {
+        updates.project = document.getElementById('taskProjectSelect').value;
+    } else {
+        updates.project = ''; // プロジェクトタスクでない場合はクリア
+    }
     
     // 更新を保存
     const updatedTask = dataManager.updateTask(currentTask.id, updates);
@@ -254,10 +281,171 @@ function formatDateTime(timestamp) {
     return `${year}/${month}/${day} ${hours}:${minutes}`;
 }
 
+// プロジェクト選択肢を読み込み
+function loadProjectOptions() {
+    const projectSelect = document.getElementById('taskProjectSelect');
+    const projects = dataManager.getProjects();
+    
+    // 既存のオプションをクリア（デフォルトオプション以外）
+    while (projectSelect.children.length > 1) {
+        projectSelect.removeChild(projectSelect.lastChild);
+    }
+    
+    // プロジェクト選択肢を追加
+    projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.name;
+        option.textContent = project.name;
+        projectSelect.appendChild(option);
+    });
+}
+
+// タスクタイプ変更時の処理
+function onTaskTypeChange() {
+    const taskType = document.getElementById('taskTypeSelect').value;
+    const projectRow = document.getElementById('projectRow');
+    const taskProjectDisplay = document.getElementById('taskProjectDisplay');
+    const taskProjectSelect = document.getElementById('taskProjectSelect');
+    
+    if (taskType === 'project') {
+        // プロジェクトタスクの場合、プロジェクト選択を表示
+        projectRow.style.display = 'grid';
+        if (isEditMode) {
+            taskProjectDisplay.style.display = 'none';
+            taskProjectSelect.style.display = 'inline-block';
+        }
+    } else {
+        // それ以外の場合、プロジェクト選択を非表示
+        projectRow.style.display = 'none';
+    }
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// 担当者表示関数
+function displayAssignees() {
+    const assigneeDisplay = document.getElementById('assigneeDisplay');
+    const assignees = currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : []);
+    
+    if (assignees.length === 0) {
+        assigneeDisplay.className = 'assignees-display empty';
+        assigneeDisplay.innerHTML = '';
+    } else {
+        assigneeDisplay.className = 'assignees-display';
+        const badges = assignees.map(assignee => {
+            const colorClass = getAssigneeColorClass(assignee);
+            return `<span class="assignee-badge assignee-color-${colorClass}">${assignee}</span>`;
+        }).join('');
+        assigneeDisplay.innerHTML = badges;
+    }
+}
+
+// 担当者編集用ドロップダウン設定
+function setupAssigneeEdit() {
+    const persons = dataManager.getPersons();
+    const currentAssignees = currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : []);
+    
+    setupAssigneeEditDropdown(persons, currentAssignees);
+}
+
+// 担当者色クラス取得関数
+function getAssigneeColorClass(assigneeName) {
+    if (!assigneeName) return 'blue';
+    
+    const colorMapping = dataManager.getAssigneeColorMapping();
+    if (colorMapping[assigneeName]) {
+        return colorMapping[assigneeName];
+    }
+    
+    // フォールバック
+    return 'blue';
+}
+
+// 編集用ドロップダウン制御関数群
+function setupAssigneeEditDropdown(persons, currentAssignees) {
+    const dropdownMenu = document.getElementById('assigneeEditDropdownMenu');
+    dropdownMenu.innerHTML = '';
+    
+    // チェックボックスアイテムを追加
+    persons.forEach(person => {
+        const checkboxItem = document.createElement('div');
+        checkboxItem.className = 'checkbox-item';
+        const isChecked = currentAssignees.includes(person.name) ? 'checked' : '';
+        checkboxItem.innerHTML = `
+            <label for="edit_assignee_${person.id}">${person.name}</label>
+            <input type="checkbox" id="edit_assignee_${person.id}" value="${person.name}" ${isChecked} onchange="updateAssigneeEditDropdownDisplay()">
+        `;
+        dropdownMenu.appendChild(checkboxItem);
+    });
+    
+    // ドロップダウンボタンイベント設定
+    const dropdownBtn = document.getElementById('assigneeEditDropdownBtn');
+    dropdownBtn.onclick = () => toggleAssigneeEditDropdown();
+    
+    // 初期表示を更新
+    updateAssigneeEditDropdownDisplay();
+    
+    // 外部クリック時に閉じる
+    setupEditDropdownOutsideClick();
+}
+
+function toggleAssigneeEditDropdown() {
+    const dropdownBtn = document.getElementById('assigneeEditDropdownBtn');
+    const dropdownMenu = document.getElementById('assigneeEditDropdownMenu');
+    const arrow = dropdownBtn.querySelector('.dropdown-arrow');
+    
+    const isOpen = dropdownMenu.style.display === 'block';
+    
+    if (isOpen) {
+        dropdownMenu.style.display = 'none';
+        dropdownMenu.classList.remove('show');
+        dropdownBtn.classList.remove('active');
+        arrow.classList.remove('open');
+    } else {
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.classList.add('show');
+        dropdownBtn.classList.add('active');
+        arrow.classList.add('open');
+    }
+}
+
+function updateAssigneeEditDropdownDisplay() {
+    const dropdownText = document.getElementById('assigneeEditDropdownBtn').querySelector('.dropdown-text');
+    const preview = document.getElementById('assigneeEditPreview');
+    const checkedBoxes = document.querySelectorAll('#assigneeEditDropdownMenu input[type="checkbox"]:checked');
+    
+    if (checkedBoxes.length === 0) {
+        dropdownText.textContent = '担当者を選択';
+        dropdownText.classList.add('placeholder');
+        preview.innerHTML = '';
+    } else {
+        dropdownText.textContent = `${checkedBoxes.length}名選択中`;
+        dropdownText.classList.remove('placeholder');
+        
+        // プレビューバッジを更新
+        const badges = Array.from(checkedBoxes).map(cb => {
+            const colorClass = getAssigneeColorClass(cb.value);
+            return `<span class="assignee-badge assignee-color-${colorClass}">${cb.value}</span>`;
+        }).join('');
+        
+        preview.innerHTML = `<div class="assignees-badges">${badges}</div>`;
+    }
+}
+
+function setupEditDropdownOutsideClick() {
+    document.addEventListener('click', function(event) {
+        const container = document.getElementById('assigneeEditContainer');
+        if (container && !container.contains(event.target)) {
+            const dropdownMenu = document.getElementById('assigneeEditDropdownMenu');
+            if (dropdownMenu && dropdownMenu.style.display === 'block') {
+                toggleAssigneeEditDropdown();
+            }
+        }
+    });
 }
 
 function highlightChanges(notificationId) {
@@ -293,7 +481,7 @@ function highlightChanges(notificationId) {
             }
             
             if (details.assigneeChange) {
-                const assigneeElement = document.getElementById('taskAssignee');
+                const assigneeElement = document.getElementById('assigneeDisplay');
                 if (assigneeElement) {
                     assigneeElement.parentElement.classList.add('highlight-change');
                 }
