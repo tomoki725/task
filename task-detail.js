@@ -187,6 +187,7 @@ function loadHistory() {
 function loadComments() {
     const comments = dataManager.getComments(currentTask.id);
     const commentList = document.getElementById('commentList');
+    const currentUser = sessionStorage.getItem('userId');
     
     commentList.innerHTML = '';
     
@@ -198,15 +199,34 @@ function loadComments() {
     comments.forEach(comment => {
         const div = document.createElement('div');
         div.className = 'comment-item';
+        
+        // 既読状態をチェック
+        const readBy = comment.readBy || [];
+        const isRead = readBy.includes(currentUser);
+        
         div.innerHTML = `
             <div class="comment-header">
                 <span class="comment-user">${comment.user}</span>
                 <span class="comment-time">${formatDateTime(comment.timestamp)}</span>
             </div>
             <div class="comment-text">${escapeHtml(comment.text)}</div>
+            <div class="comment-actions">
+                <button class="read-btn ${isRead ? 'read' : ''}" 
+                        onclick="markCommentAsRead(${comment.id})"
+                        ${isRead ? 'disabled' : ''}>
+                    ${isRead ? '✓' : ''} 見ました
+                </button>
+            </div>
         `;
         commentList.appendChild(div);
     });
+}
+
+function markCommentAsRead(commentId) {
+    const result = dataManager.markCommentAsRead(currentTask.id, commentId);
+    if (result) {
+        loadComments(); // UIを更新
+    }
 }
 
 function addComment() {

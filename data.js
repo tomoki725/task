@@ -31,6 +31,9 @@ class DataManager {
             ];
             localStorage.setItem('projects', JSON.stringify(defaultProjects));
         }
+
+        // 既存コメントの移行（既読機能の追加）
+        this.migrateComments();
     }
 
     // 既存タスクにタスクIDを付与する移行処理
@@ -257,7 +260,8 @@ class DataManager {
             id: Date.now(),
             text: comment,
             user: currentUser,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            readBy: [] // 初期状態では誰も既読していない
         };
         
         comments[taskId].push(newComment);
@@ -277,6 +281,52 @@ class DataManager {
         }
         
         return newComment;
+    }
+
+    // コメントを既読にマーク
+    markCommentAsRead(taskId, commentId) {
+        const comments = JSON.parse(localStorage.getItem('comments') || '{}');
+        const taskComments = comments[taskId] || [];
+        const currentUser = sessionStorage.getItem('userId');
+        
+        const commentIndex = taskComments.findIndex(c => c.id === commentId);
+        if (commentIndex !== -1) {
+            const comment = taskComments[commentIndex];
+            
+            // readByが存在しない場合は初期化
+            if (!comment.readBy) {
+                comment.readBy = [];
+            }
+            
+            // まだ既読していない場合のみ追加
+            if (!comment.readBy.includes(currentUser)) {
+                comment.readBy.push(currentUser);
+                comments[taskId] = taskComments;
+                localStorage.setItem('comments', JSON.stringify(comments));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 既存コメントの移行（readByフィールドを追加）
+    migrateComments() {
+        const comments = JSON.parse(localStorage.getItem('comments') || '{}');
+        let needsUpdate = false;
+        
+        Object.keys(comments).forEach(taskId => {
+            comments[taskId].forEach(comment => {
+                if (!comment.readBy) {
+                    comment.readBy = [];
+                    needsUpdate = true;
+                }
+            });
+        });
+        
+        if (needsUpdate) {
+            localStorage.setItem('comments', JSON.stringify(comments));
+            console.log('既存コメントに既読機能を追加しました');
+        }
     }
 
     // 通知関連メソッド
