@@ -13,14 +13,22 @@ class DataManager {
             this.migrateTaskIds();
         }
 
-        // 人員マスターの初期化
+        // 人員マスターの初期化（デフォルト人員を含む）
         if (!localStorage.getItem('persons')) {
             const defaultPersons = [
-                { id: 1, name: '山田太郎', department: '' },
-                { id: 2, name: '佐藤花子', department: '' },
-                { id: 3, name: '鈴木一郎', department: '' }
+                { id: 1001, name: '市村光希', loginId: 'ichimura', password: 'ichimura_piala1234', department: '', email: '', chatworkId: '' },
+                { id: 1002, name: '大谷凪沙', loginId: 'ohtani', password: 'ohtani_piala1234', department: '', email: '', chatworkId: '' },
+                { id: 1003, name: '牧野風音', loginId: 'makino', password: 'makino_1234', department: '', email: '', chatworkId: '' },
+                { id: 1004, name: '青木海燈', loginId: 'aoki', password: 'aoki_1234', department: '', email: '', chatworkId: '' },
+                { id: 1005, name: '村山太洋', loginId: 'murayama', password: 'murayama_1234', department: '', email: '', chatworkId: '' },
+                { id: 1006, name: '井上舞', loginId: 'inoue', password: 'inoue_1234', department: '', email: '', chatworkId: '' },
+                { id: 1007, name: '長野由愛', loginId: 'nagano', password: 'nagano_1234', department: '', email: '', chatworkId: '' },
+                { id: 1008, name: '上谷朋輝', loginId: 'kamiya', password: 'kamiya_1234', department: '', email: '', chatworkId: '' }
             ];
             localStorage.setItem('persons', JSON.stringify(defaultPersons));
+        } else {
+            // 既存データがある場合、デフォルト人員が含まれているか確認
+            this.ensureDefaultPersons();
         }
 
         // プロジェクトマスターの初期化
@@ -121,10 +129,49 @@ class DataManager {
         task.history = [{
             action: 'created',
             timestamp: new Date().toISOString(),
-            user: sessionStorage.getItem('userId')
+            user: sessionStorage.getItem('userName') || sessionStorage.getItem('userId')
         }];
         tasks.push(task);
         localStorage.setItem('tasks', JSON.stringify(tasks));
+        
+        // タスク作成時の通知を担当者に送信
+        const currentUser = sessionStorage.getItem('userId');
+        const currentUserName = sessionStorage.getItem('userName') || currentUser;
+        if (task.assignees && task.assignees.length > 0) {
+            task.assignees.forEach(assignee => {
+                // 作成者自身には通知しない
+                if (assignee !== currentUserName && assignee !== currentUser) {
+                    this.createNotification(task.id, 'created', {
+                        taskName: task.name,
+                        taskId: task.taskId,
+                        priority: task.priority || 'medium',
+                        endDate: task.endDate,
+                        createdBy: currentUserName,
+                        notifyTo: assignee
+                    });
+                }
+            });
+        }
+        
+        // Chatwork通知を送信（ChatworkIDも含める）
+        const assigneeNames = task.assignees || [task.assignee];
+        const persons = this.getPersons();
+        const assigneeChatworkIds = assigneeNames.map(name => {
+            const person = persons.find(p => p.name === name);
+            return person ? person.chatworkId : null;
+        }).filter(id => id);
+        
+        this.sendChatworkNotification('task_created', {
+            id: task.id,
+            taskId: task.taskId,
+            taskName: task.name,
+            assignees: assigneeNames,
+            assigneeChatworkIds: assigneeChatworkIds,
+            priority: task.priority || 'medium',
+            endDate: task.endDate,
+            createdBy: currentUserName
+        });
+        
         return task;
     }
 
@@ -136,6 +183,7 @@ class DataManager {
             const task = tasks[taskIndex];
             const history = task.history || [];
             const currentUser = sessionStorage.getItem('userId');
+            const currentUserName = sessionStorage.getItem('userName') || currentUser;
             let hasChanges = false;
             let notificationDetails = {};
             
@@ -149,7 +197,7 @@ class DataManager {
                         oldValue: task[key],
                         newValue: updates[key],
                         timestamp: new Date().toISOString(),
-                        user: currentUser
+                        user: currentUserName
                     });
                     
                     // 通知詳細の作成
@@ -180,7 +228,7 @@ class DataManager {
             // 担当者への通知を作成（自分自身の変更でも、担当者として通知を受け取る）
             if (hasChanges && task.assignees && task.assignees.length > 0) {
                 notificationDetails.taskName = task.name;
-                notificationDetails.changedBy = currentUser;
+                notificationDetails.changedBy = currentUserName;
                 
                 // 全担当者に通知を作成
                 task.assignees.forEach(assignee => {
@@ -291,10 +339,11 @@ class DataManager {
         }
         
         const currentUser = sessionStorage.getItem('userId');
+        const currentUserName = sessionStorage.getItem('userName') || currentUser;
         const newComment = {
             id: Date.now(),
             text: comment,
-            user: currentUser,
+            user: currentUserName,
             timestamp: new Date().toISOString(),
             readBy: [] // 初期状態では誰も既読していない
         };
@@ -307,16 +356,33 @@ class DataManager {
         if (task && task.assignees && task.assignees.length > 0) {
             // 全担当者に通知を作成（コメント作成者以外）
             task.assignees.forEach(assignee => {
-                if (currentUser !== assignee) {
+                if (currentUserName !== assignee && currentUser !== assignee) {
                     this.createNotification(taskId, 'comment', {
                         commentText: comment,
                         taskName: task.name,
-                        commentedBy: currentUser,
+                        commentedBy: currentUserName,
                         notifyTo: assignee
                     });
                 }
             });
         }
+        
+        // Chatwork通知を送信（ChatworkIDも含める）
+        const persons = this.getPersons();
+        const assigneeChatworkIds = task.assignees.map(name => {
+            const person = persons.find(p => p.name === name);
+            return person ? person.chatworkId : null;
+        }).filter(id => id);
+        
+        this.sendChatworkNotification('comment_added', {
+            id: task.id,
+            taskId: task.taskId,
+            taskName: task.name,
+            assignees: task.assignees,
+            assigneeChatworkIds: assigneeChatworkIds,
+            comment: comment,
+            commentedBy: currentUserName
+        });
         
         return newComment;
     }
@@ -431,14 +497,16 @@ class DataManager {
     getNotifications(userId) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
         const tasks = this.getTasks();
+        const userName = sessionStorage.getItem('userName') || userId;
         
         // 現在のユーザーが担当者のタスクに関する通知のみフィルタリング
+        // userIdまたはuserNameでマッチング
         return notifications.filter(notif => {
             const task = tasks.find(t => t.id === notif.taskId);
             return task && (
-                (task.assignees && task.assignees.includes(userId)) ||
-                (notif.details && notif.details.notifyTo === userId) ||
-                (task.assignee === userId) // 後方互換性
+                (task.assignees && (task.assignees.includes(userId) || task.assignees.includes(userName))) ||
+                (notif.details && (notif.details.notifyTo === userId || notif.details.notifyTo === userName)) ||
+                (task.assignee === userId || task.assignee === userName) // 後方互換性
             );
         });
     }
@@ -478,22 +546,51 @@ class DataManager {
         return null;
     }
 
-    markAllNotificationsAsRead(userId) {
+    markAllNotificationsAsRead(userId, userName) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
         const tasks = this.getTasks();
         
         notifications.forEach(notif => {
             const task = tasks.find(t => t.id === notif.taskId);
             if (task && (
-                (task.assignees && task.assignees.includes(userId)) ||
-                (notif.details && notif.details.notifyTo === userId) ||
-                (task.assignee === userId) // 後方互換性
+                (task.assignees && (task.assignees.includes(userId) || task.assignees.includes(userName))) ||
+                (notif.details && (notif.details.notifyTo === userId || notif.details.notifyTo === userName)) ||
+                (task.assignee === userId || task.assignee === userName) // 後方互換性
             )) {
                 notif.isRead = true;
             }
         });
         
         localStorage.setItem('notifications', JSON.stringify(notifications));
+    }
+
+    // Chatwork通知送信関数
+    sendChatworkNotification(type, data) {
+        // Chatwork通知が有効かチェック
+        const chatworkEnabled = localStorage.getItem('chatworkEnabled') === 'true';
+        const webhookUrl = localStorage.getItem('chatworkWebhookUrl');
+        
+        if (!chatworkEnabled || !webhookUrl) {
+            return; // 設定されていない場合は何もしない
+        }
+        
+        const payload = {
+            type: type,
+            ...data,
+            timestamp: new Date().toISOString()
+        };
+        
+        // 非同期でWebhookに送信（エラーが発生しても処理を継続）
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: JSON.stringify(payload)
+        }).catch(error => {
+            console.warn('Chatwork notification failed:', error);
+            // エラーが発生してもUIには影響させない
+        });
     }
 
     clearOldNotifications() {
@@ -505,6 +602,33 @@ class DataManager {
         });
         
         localStorage.setItem('notifications', JSON.stringify(filteredNotifications));
+    }
+
+    // デフォルト人員が存在するか確認し、不足分を追加
+    ensureDefaultPersons() {
+        const persons = this.getPersons();
+        const defaultPersons = [
+            { id: 1001, name: '市村光希', loginId: 'ichimura', password: 'ichimura_piala1234', department: '', email: '', chatworkId: '' },
+            { id: 1002, name: '大谷凪沙', loginId: 'ohtani', password: 'ohtani_piala1234', department: '', email: '', chatworkId: '' },
+            { id: 1003, name: '牧野風音', loginId: 'makino', password: 'makino_1234', department: '', email: '', chatworkId: '' },
+            { id: 1004, name: '青木海燈', loginId: 'aoki', password: 'aoki_1234', department: '', email: '', chatworkId: '' },
+            { id: 1005, name: '村山太洋', loginId: 'murayama', password: 'murayama_1234', department: '', email: '', chatworkId: '' },
+            { id: 1006, name: '井上舞', loginId: 'inoue', password: 'inoue_1234', department: '', email: '', chatworkId: '' },
+            { id: 1007, name: '長野由愛', loginId: 'nagano', password: 'nagano_1234', department: '', email: '', chatworkId: '' },
+            { id: 1008, name: '上谷朋輝', loginId: 'kamiya', password: 'kamiya_1234', department: '', email: '', chatworkId: '' }
+        ];
+        
+        let updated = false;
+        defaultPersons.forEach(defaultPerson => {
+            if (!persons.find(p => p.loginId === defaultPerson.loginId)) {
+                persons.push(defaultPerson);
+                updated = true;
+            }
+        });
+        
+        if (updated) {
+            localStorage.setItem('persons', JSON.stringify(persons));
+        }
     }
 }
 

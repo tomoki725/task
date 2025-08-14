@@ -7,19 +7,102 @@
 - 本番環境: https://buzzlog-6fc74.web.app
 - Firebase Console: https://console.firebase.google.com/project/buzzlog-6fc74/overview
 
+## ログイン画面仕様（index.html）
+
+### UI構造
+- **ロゴデザイン**: 
+  - 電球アイコン（💡）+ "Buzz"（オレンジ色）+ "log"（ダークグレー）
+  - 大きく目立つブランドロゴで視認性重視
+- **ログインフォーム**:
+  - ユーザーID入力フィールド（プレースホルダー: "IDを入力"）
+  - パスワード入力フィールド（プレースホルダー: "パスワードを入力"）
+  - パスワード表示/非表示切り替えボタン（👁️/🙈アイコン）
+  - ログインボタン
+  - エラーメッセージ表示エリア
+
+### デザイン仕様
+- **背景**: グラデーション（紫から青のグラデーション：#667eea → #764ba2）
+- **ログインボックス**: 白背景、角丸、ドロップシャドウで立体感
+- **レスポンシブ**: 最大幅400px、中央配置
+- **カラーテーマ**: 
+  - プライマリ: #667eea（紫青）
+  - ロゴオレンジ: #f59e0b
+  - エラー: #e53e3e
+
+### 認証機能
+- **複数認証方式対応**:
+  1. 新形式: loginId + 設定パスワード
+  2. 旧形式: 名前 + 自動生成パスワード（後方互換性）
+  3. 管理者: pialabuzz + pialabuzz1234（ハードコーディング）
+- **パスワード自動生成ルール**: 名前の最初2文字（ひらがな→ローマ字変換）+ "123"
+- **セッション管理**: sessionStorageにログイン状態、userId、userName、loginTime保存
+- **エラーハンドリング**: 認証失敗時にエラーメッセージ表示、パスワードフィールドクリア
+
+### デフォルト人員データ初期化
+ブラウザの人員データが空の場合、以下8名のデフォルトユーザーを自動登録：
+- 市村光希 (ichimura / ichimura_piala1234)
+- 大谷凪沙 (ohtani / ohtani_piala1234)  
+- 牧野風音 (makino / makino_1234)
+- 青木海燈 (aoki / aoki_1234)
+- 村山太洋 (murayama / murayama_1234)
+- 井上舞 (inoue / inoue_1234)
+- 長野由愛 (nagano / nagano_1234)
+- 上谷朋輝 (kamiya / kamiya_1234)
+
+### セキュリティ機能
+- セッション有効性チェック
+- ログイン済みユーザーのダッシュボード自動リダイレクト
+- 未ログインユーザーのログインページ強制リダイレクト
+- パスワード入力値のクリア機能
+
 ## ログイン情報
 
 ### 人員マスター連動ログイン
 人員マスターに登録されている人のみログイン可能
 
-| ユーザー名 | パスワード | 備考 |
-|----------|----------|------|
-| 山田太郎 | yamada123 | 初期登録メンバー |
-| 佐藤花子 | sato123 | 初期登録メンバー |
-| 鈴木一郎 | suzuki123 | 初期登録メンバー |
-| pialabuzz | pialabuzz1234 | 管理者用（互換性維持） |
+| アカウント | ログインID | パスワード | 備考 |
+|----------|----------|----------|------|
+| pialabuzz | pialabuzz | pialabuzz1234 | 管理者用（ハードコーディング） |
 
-※ 新規追加した人員は、名前の最初の2文字（小文字） + `123` がパスワードになります
+### 人員管理方法
+
+#### 人員追加
+1. 管理者（pialabuzz）でログイン
+2. 人員マスターで「追加」ボタンをクリック
+3. 以下の情報を入力：
+   - 名前（必須）
+   - ログインID（必須）
+   - パスワード（必須）
+   - 部署（任意）
+   - メールアドレス（任意）
+4. **自動生成ボタン**でログインIDとパスワードを自動作成可能
+   - 名前の漢字→ローマ字変換（例：長野→nagano）
+   - パスワード形式：ログインID + 123
+
+#### 人員編集・パスワード変更
+1. 管理者（pialabuzz）でログイン
+2. 人員マスターで該当人員の「編集」ボタンをクリック
+3. 人員編集モーダルで情報を変更：
+   - 名前、ログインID、パスワード、部署、メールアドレス
+   - パスワード自動生成機能も利用可能
+4. 「更新」ボタンで保存
+5. 更新完了時に新しいログイン情報が表示される
+
+**注意**: 編集・削除機能は管理者（pialabuzz）のみ利用可能
+
+### デフォルト登録人員
+以下の人員はシステムにデフォルトで登録されており、どのブラウザでもログイン可能です：
+
+| 名前 | ログインID | パスワード |
+|------|-----------|-----------|
+| 市村光希 | ichimura | ichimura_piala1234 |
+| 大谷凪沙 | ohtani | ohtani_piala1234 |
+| 牧野風音 | makino | makino_1234 |
+| 青木海燈 | aoki | aoki_1234 |
+| 村山太洋 | murayama | murayama_1234 |
+| 井上舞 | inoue | inoue_1234 |
+| 長野由愛 | nagano | nagano_1234 |
+| 上谷朋輝 | kamiya | kamiya_1234 |
 
 ## 主要機能
 
@@ -32,12 +115,13 @@
 
 ### 2. 通知機能
 - ダッシュボードのヘッダーにベルマークアイコン
-- 自分が担当者のタスクに変更があった場合に通知
-  - タスク内容の変更
-  - ステータスの変更
-  - 他者からのコメント追加
+- 自分が担当者のタスクに関する以下の場合に通知
+  - **新規タスク作成時**: 他者が自分を担当者に設定してタスク作成
+  - **タスク内容変更時**: ステータス、内容、期限、担当者の変更
+  - **コメント追加時**: 他者からのコメント追加
 - 通知クリックで該当タスク詳細へ遷移
 - 変更箇所が2秒間ハイライト表示
+- **重要**: 再ログインが必要（sessionStorageにuserName保存のため）
 
 ### 3. フィルタリング・ソート機能
 - **カテゴリフィルタ**: タスクタイプ別表示
@@ -48,6 +132,9 @@
 
 ### 4. マスター管理
 - **人員マスター**: チームメンバーの管理（ログインユーザーと連動）
+  - 管理者（pialabuzz）のみ編集・削除可能
+  - 人員編集モーダルでパスワード変更機能
+  - ログインID重複チェック機能
 - **プロジェクトマスター**: プロジェクトの管理
 
 ### 5. タスク詳細機能
@@ -121,6 +208,363 @@
 └── firebase.json      # Firebase設定
 ```
 
+## Chatwork通知機能の設定方法（2025年版）
+
+### 🎯 設定完了の流れ
+1. **Chatwork準備**: APIトークン・ルームID・アカウントID取得
+2. **GAS作成**: Webhookサーバーのコード配置・設定・デプロイ
+3. **Buzzlog設定**: Webhook URLの設定、人員マスターにChatworkアカウントID設定
+4. **動作確認**: テスト通知の実行
+
+---
+
+### 1. Chatwork APIトークンとルームIDの取得
+
+#### 📝 APIトークンの取得
+1. Chatworkにログイン
+2. 右上のユーザーアイコン → **「サービス連携」**
+3. **「API Token」** タブをクリック
+4. **「新しいトークンを作成する」** をクリック
+5. 用途：「Buzzlog通知」等の名前で作成
+6. 生成されたトークンをコピー（**後で使用**）
+   - 現在設定済み: `cc946d7f6eeeb7efd4aad5554aa938cb`
+
+#### 🏠 ルームIDの取得
+1. 通知したいChatworkルームを開く
+2. URLを確認：`https://www.chatwork.com/rid123456789`
+3. 数字部分（例：`123456789`）がルームID（**後で使用**）
+   - 現在設定済み: `407398913`
+
+---
+
+### 2. Google Apps Script (GAS) Webhookサーバーの設定
+
+#### ステップ1: 新しいGASプロジェクトを作成
+1. https://script.google.com にアクセス
+2. **「新しいプロジェクト」** をクリック
+3. プロジェクト名を「Buzzlog Chatwork Webhook」等に変更
+4. **完全なコードを貼り付け**（下記参照）
+
+#### ステップ2: 完全なGASコード
+**⚠️重要**: 以下のコードを `Code.gs` に **全て置き換え** してください
+**📌 注**: APIトークンとルームIDは既に設定済みです
+
+```javascript
+// Buzzlog Chatwork通知用 Google Apps Script Webhookサーバー
+// 2025年版 - 最新のAPIに対応
+
+// 初期設定関数（最初に1回実行）
+function setupProperties() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  
+  // 実際の情報を設定済み
+  scriptProperties.setProperties({
+    'CHATWORK_API_TOKEN': 'cc946d7f6eeeb7efd4aad5554aa938cb',
+    'CHATWORK_ROOM_ID': '407398913'
+  });
+  
+  Logger.log('スクリプトプロパティが設定されました');
+}
+
+// メイン関数：Webhookの受信処理
+function doPost(e) {
+  try {
+    const requestData = JSON.parse(e.postData.contents);
+    Logger.log('受信データ:', requestData);
+    
+    if (requestData.type === 'task_created') {
+      sendTaskCreatedNotification(requestData);
+    } else if (requestData.type === 'comment_added') {
+      sendCommentAddedNotification(requestData);
+    } else {
+      Logger.log('未対応のデータタイプ:', requestData.type);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log('エラーが発生しました:', error);
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        status: 'error', 
+        message: error.toString() 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// タスク作成通知の送信
+function sendTaskCreatedNotification(data) {
+  const message = buildTaskCreatedMessage(data);
+  sendChatworkMessage(message);
+}
+
+// コメント追加通知の送信
+function sendCommentAddedNotification(data) {
+  const message = buildCommentAddedMessage(data);
+  sendChatworkMessage(message);
+}
+
+// タスク作成メッセージの構築
+function buildTaskCreatedMessage(data) {
+  const priorityMap = {
+    'high': '🔴高',
+    'medium': '🟡中', 
+    'low': '🔵低'
+  };
+  
+  const priority = priorityMap[data.priority] || '🟡中';
+  const assignees = Array.isArray(data.assignees) ? data.assignees.join(', ') : (data.assignees || '未設定');
+  const endDate = data.endDate || '未設定';
+  const taskDetailUrl = `https://buzzlog-6fc74.web.app/task-detail.html?id=${data.id || data.taskId}`;
+  
+  let message = `[info][title]📋 新しいタスクが作成されました[/title]`;
+  message += `🆔 タスクID: ${data.taskId}\n`;
+  message += `📝 タスク名: ${data.taskName}\n`;
+  message += `⭐ 優先度: ${priority}\n`;
+  message += `👤 担当者: ${assignees}\n`;
+  message += `📅 期限: ${endDate}\n`;
+  message += `👷 作成者: ${data.createdBy}\n`;
+  message += `🔗 詳細を見る: ${taskDetailUrl}`;
+  message += `[/info]`;
+  
+  return message;
+}
+
+// コメント追加メッセージの構築
+function buildCommentAddedMessage(data) {
+  const taskDetailUrl = `https://buzzlog-6fc74.web.app/task-detail.html?id=${data.id || data.taskId}`;
+  
+  let message = `[info][title]💬 タスクにコメントが追加されました[/title]`;
+  message += `🆔 タスクID: ${data.taskId}\n`;
+  message += `📝 タスク名: ${data.taskName}\n`;
+  message += `💭 コメント: ${data.comment}\n`;
+  message += `👤 投稿者: ${data.commentedBy}\n`;
+  message += `🔗 詳細を見る: ${taskDetailUrl}`;
+  message += `[/info]`;
+  
+  return message;
+}
+
+// Chatworkメッセージの送信
+function sendChatworkMessage(message) {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const apiToken = scriptProperties.getProperty('CHATWORK_API_TOKEN');
+  const roomId = scriptProperties.getProperty('CHATWORK_ROOM_ID');
+  
+  if (!apiToken || !roomId) {
+    throw new Error('Chatwork APIトークンまたはルームIDが設定されていません');
+  }
+  
+  const url = `https://api.chatwork.com/v2/rooms/${roomId}/messages`;
+  
+  const payload = {
+    'body': message
+  };
+  
+  const options = {
+    'method': 'POST',
+    'headers': {
+      'X-ChatWorkToken': apiToken,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    'payload': Object.keys(payload).map(key => key + '=' + encodeURIComponent(payload[key])).join('&')
+  };
+  
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    
+    if (responseCode === 200) {
+      Logger.log('Chatworkメッセージ送信成功');
+      return JSON.parse(response.getContentText());
+    } else {
+      Logger.log('Chatworkメッセージ送信失敗:', responseCode, response.getContentText());
+      throw new Error(`Chatwork API エラー: ${responseCode}`);
+    }
+  } catch (error) {
+    Logger.log('Chatworkメッセージ送信中にエラー:', error);
+    throw error;
+  }
+}
+
+// 設定確認用関数
+function checkConfiguration() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const apiToken = scriptProperties.getProperty('CHATWORK_API_TOKEN');
+  const roomId = scriptProperties.getProperty('CHATWORK_ROOM_ID');
+  
+  Logger.log('=== 設定確認 ===');
+  Logger.log('APIトークン:', apiToken ? '設定済み' : '未設定');
+  Logger.log('ルームID:', roomId ? roomId : '未設定');
+  
+  if (!apiToken || !roomId) {
+    Logger.log('⚠️ setupProperties()関数を実行して初期設定を行ってください');
+  } else {
+    Logger.log('✅ 設定完了済み');
+  }
+}
+
+// テスト用関数：タスク作成通知のテスト
+function testTaskCreatedNotification() {
+  const testData = {
+    type: 'task_created',
+    taskId: 'T-20250112-TEST1',
+    taskName: 'テストタスク',
+    assignees: ['山田太郎', '佐藤花子'],
+    priority: 'high',
+    endDate: '2025-01-15',
+    createdBy: 'テストユーザー'
+  };
+  
+  sendTaskCreatedNotification(testData);
+  Logger.log('タスク作成通知テスト完了');
+}
+
+// テスト用関数：コメント追加通知のテスト
+function testCommentAddedNotification() {
+  const testData = {
+    type: 'comment_added',
+    taskId: 'T-20250112-TEST1',
+    taskName: 'テストタスク',
+    comment: 'これはテストコメントです。',
+    commentedBy: 'テストユーザー'
+  };
+  
+  sendCommentAddedNotification(testData);
+  Logger.log('コメント追加通知テスト完了');
+}
+```
+
+#### ステップ3: APIトークンとルームIDの設定
+1. コード内の `setupProperties()` 関数は既に設定済み
+2. 上部メニューから **「実行」** → **setupProperties** を選択して実行
+3. 初回実行時は権限承認が必要です
+
+#### ステップ4: 設定確認とテスト
+1. **checkConfiguration** 関数を実行して設定を確認
+2. **testTaskCreatedNotification** 関数でテスト通知を実行
+3. Chatworkにテストメッセージが届くことを確認
+
+#### ステップ5: Webアプリとしてデプロイ
+1. **「デプロイ」** → **「新しいデプロイ」** をクリック
+2. **種類**: 「ウェブアプリ」を選択
+3. **アクセスできるユーザー**: 「全員」を選択
+4. **デプロイ** をクリック
+5. 生成された **「ウェブアプリURL」** をコピー（**Buzzlog設定で使用**）
+
+---
+
+### 3. Buzzlog側の設定
+
+#### ブラウザ設定（一度のみ実行）
+1. Buzzlogにログインしてダッシュボードを開く
+2. ブラウザの開発者ツール（F12キー）を開く
+3. **「Console」** タブをクリック
+4. 以下のコマンドを実行（GAS WebアプリURLを使用）：
+
+```javascript
+// Chatwork通知を有効化
+localStorage.setItem('chatworkEnabled', 'true');
+localStorage.setItem('chatworkWebhookUrl', 'YOUR_GAS_WEBAPP_URL_HERE');
+
+// 設定確認
+console.log('Chatwork有効:', localStorage.getItem('chatworkEnabled'));
+console.log('Webhook URL:', localStorage.getItem('chatworkWebhookUrl'));
+```
+
+#### 設定の確認
+```javascript
+// 現在の設定を確認
+console.log('Chatwork通知設定:', {
+  enabled: localStorage.getItem('chatworkEnabled'),
+  webhookUrl: localStorage.getItem('chatworkWebhookUrl')
+});
+```
+
+#### 通知の無効化
+```javascript
+// 通知を無効にする場合
+localStorage.setItem('chatworkEnabled', 'false');
+```
+
+---
+
+### 4. ChatworkアカウントIDの設定
+
+#### 📋 アカウントIDの取得方法
+
+##### 方法1: プロフィールページから取得
+1. Chatworkにログイン
+2. 右上のユーザーアイコンをクリック
+3. 「プロフィール」を選択
+4. URLの末尾の数字がアカウントID
+   - 例: `https://www.chatwork.com/#!profile/123456789` → `123456789`
+
+##### 方法2: メッセージから取得
+1. Chatworkの任意のルームを開く
+2. 自分の名前をクリック
+3. 表示される`[To:数字]`の数字部分がアカウントID
+
+#### ⚙️ Buzzlogでの設定方法
+1. 管理者（pialabuzz）でBuzzlogにログイン
+2. 人員マスターで該当ユーザーの「編集」をクリック
+3. 「ChatworkアカウントID」欄に取得したIDを入力
+4. 「更新」をクリック
+
+設定後、該当ユーザーが担当者のタスクに対してTo通知が送信されます。
+
+---
+
+### 5. 動作確認とトラブルシューティング
+
+#### ✅ 動作テスト手順
+1. **タスク作成テスト**: 
+   - Buzzlogで新しいタスクを作成
+   - Chatworkに通知が届くことを確認
+2. **コメント追加テスト**: 
+   - 既存タスクにコメントを追加
+   - Chatworkに通知が届くことを確認
+
+#### 🔧 トラブルシューティング
+
+**通知が届かない場合:**
+1. **GAS設定確認**: `checkConfiguration()` 関数を実行
+2. **ログ確認**: GASの「実行数」でエラーログをチェック
+3. **URL確認**: Buzzlog側のWebhook URLが正しいか確認
+4. **権限確認**: GASが「全員」でアクセス可能に設定されているか確認
+
+**エラーが発生する場合:**
+1. **APIトークン確認**: Chatwork APIトークンが有効か確認
+2. **ルームID確認**: ルームIDが正しい数字のみか確認
+3. **ネットワーク確認**: Chatwork APIへの接続が可能か確認
+
+### 📋 通知メッセージ例
+
+#### タスク作成通知
+```
+📋 新しいタスクが作成されました
+🆔 タスクID: T-20250112-ABC12
+📝 タスク名: 新規プロジェクトの企画書作成
+⭐ 優先度: 🔴高
+👤 担当者: 山田太郎, 佐藤花子
+📅 期限: 2025-01-15
+👷 作成者: 鈴木一郎
+🔗 詳細を見る: https://buzzlog-6fc74.web.app/task-detail.html?id=T-20250112-ABC12
+```
+
+#### コメント追加通知
+```
+💬 タスクにコメントが追加されました
+🆔 タスクID: T-20250112-ABC12
+📝 タスク名: 新規プロジェクトの企画書作成
+💭 コメント: 資料の追加をお願いします。
+👤 投稿者: 田中次郎
+🔗 詳細を見る: https://buzzlog-6fc74.web.app/task-detail.html?id=T-20250112-ABC12
+```
+
 ## 開発時の注意事項
 
 ### コード規約
@@ -173,6 +617,40 @@
     - タスクタイプ（部署タスク/プロジェクトタスク/個人タスク）を編集可能
     - プロジェクトタスクに変更時、プロジェクト選択が自動表示
     - タスクタイプ変更時の適切な表示制御を実装
+19. **タスク詳細画面での優先度編集機能**
+    - 編集モードで優先度（高/中/低）を変更可能
+    - 通常時は色付きバッジで表示、編集時はドロップダウン選択
+    - 保存時に優先度更新と履歴記録
+20. **人員マスター管理の改善**
+    - 初期人員データを空配列に変更（完全ブラウザ管理）
+    - 管理者（pialabuzz）のみハードコーディング維持
+    - 人員追加時にログインIDとパスワードを個別設定可能
+    - パスワード自動生成機能（名前→ローマ字変換 + 123）
+    - 人員一覧にログインID表示
+    - メールアドレス入力フィールドを追加
+21. **タスク作成時通知機能の実装**
+    - 他のユーザーが自分を担当者に設定してタスク作成時に通知
+    - 新規タスク割り当て通知（作成者、優先度、期限表示）
+    - 作成者自身には通知されない仕様
+22. **通知機能の修正・改善**
+    - ログインIDと実際の名前の不一致による通知バグを修正
+    - sessionStorageにuserIdとuserNameの両方を保存
+    - 通知フィルタリングでuserIdとuserNameの両方で判定
+    - 管理者アカウント（pialabuzz）からの通知も正常動作
+23. **ログイン画面のパスワード表示機能**
+    - パスワード入力フィールドに表示/非表示切り替えボタンを追加
+    - 目のアイコン（👁️/🙈）でパスワードの可視性を制御
+    - ユーザビリティ向上とパスワード入力ミス防止
+24. **pialabuzz専用人員管理機能**
+    - 管理者（pialabuzz）のみ人員情報を編集可能
+    - 人員編集モーダルでパスワード変更機能を実装
+    - ログインID重複チェックとパスワード自動生成機能
+    - 権限制御による編集・削除ボタンの表示制御
+25. **Chatwork通知機能**
+    - タスク作成時とコメント追加時にChatworkへ自動通知
+    - Google Apps Script (GAS) Webhookサーバー経由で送信
+    - LocalStorageベースの設定管理（有効/無効、WebhookURL）
+    - タスク情報の詳細通知（担当者、優先度、期限等）
 
 ## トラブルシューティング
 
@@ -183,5 +661,13 @@
 
 ### ログインできない場合
 1. 人員マスターに登録されているか確認
-2. パスワードルールを確認（苗字ローマ字+123）
+2. ログインIDとパスワードが正しいか確認
 3. 大文字小文字の入力ミスを確認
+
+### 通知が来ない場合
+1. **再ログインを実行**（最重要）
+   - 一度ログアウトして再度ログイン
+   - sessionStorageにuserName保存のため
+2. ブラウザキャッシュをクリア
+3. 担当者に正しく設定されているか確認
+4. 作成者と受信者が異なるユーザーか確認

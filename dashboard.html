@@ -196,8 +196,28 @@
                     <input type="text" id="personName" required>
                 </div>
                 <div class="form-group">
+                    <label>ログインID *</label>
+                    <input type="text" id="personLoginId" required placeholder="例: yamada">
+                </div>
+                <div class="form-group">
+                    <label>パスワード *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="personPassword" required placeholder="例: yamada123" style="flex: 1;">
+                        <button type="button" onclick="generateAutoPassword()" class="auto-generate-btn" style="padding: 5px 10px;">自動生成</button>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>部署</label>
                     <input type="text" id="personDepartment">
+                </div>
+                <div class="form-group">
+                    <label>メールアドレス</label>
+                    <input type="email" id="personEmail" placeholder="例: yamada@example.com">
+                </div>
+                <div class="form-group">
+                    <label>ChatworkアカウントID</label>
+                    <input type="text" id="personChatworkId" placeholder="例: 123456789">
+                    <small style="color: #666;">Chatworkのプロフィールページで確認できます</small>
                 </div>
                 <button type="submit" class="submit-btn">追加</button>
             </form>
@@ -219,6 +239,45 @@
                     <textarea id="projectDescription" rows="3"></textarea>
                 </div>
                 <button type="submit" class="submit-btn">追加</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 人員編集モーダル -->
+    <div id="personEditModal" class="modal">
+        <div class="modal-content small">
+            <span class="close" onclick="closePersonEditModal()">&times;</span>
+            <h2>人員編集</h2>
+            <form id="personEditForm">
+                <div class="form-group">
+                    <label>名前 *</label>
+                    <input type="text" id="personEditName" required>
+                </div>
+                <div class="form-group">
+                    <label>ログインID *</label>
+                    <input type="text" id="personEditLoginId" required>
+                </div>
+                <div class="form-group">
+                    <label>パスワード *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="personEditPassword" required style="flex: 1;">
+                        <button type="button" onclick="generateEditAutoPassword()" class="auto-generate-btn" style="padding: 5px 10px;">自動生成</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>部署</label>
+                    <input type="text" id="personEditDepartment">
+                </div>
+                <div class="form-group">
+                    <label>メールアドレス</label>
+                    <input type="email" id="personEditEmail">
+                </div>
+                <div class="form-group">
+                    <label>ChatworkアカウントID</label>
+                    <input type="text" id="personEditChatworkId" placeholder="例: 123456789">
+                    <small style="color: #666;">Chatworkのプロフィールページで確認できます</small>
+                </div>
+                <button type="submit" class="submit-btn">更新</button>
             </form>
         </div>
     </div>

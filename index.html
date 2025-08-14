@@ -22,7 +22,12 @@
                 </div>
                 <div class="form-group">
                     <label for="password">パスワード</label>
-                    <input type="password" id="password" required placeholder="パスワードを入力">
+                    <div class="password-input-container">
+                        <input type="password" id="password" required placeholder="パスワードを入力">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()">
+                            <span id="passwordToggleIcon">👁️</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="errorMessage" class="error-message"></div>
                 <button type="submit" class="login-btn">ログイン</button>

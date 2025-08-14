@@ -48,6 +48,10 @@ function displayTaskDetail() {
     document.getElementById('taskTypeSelect').value = currentTask.type || 'department';
     document.getElementById('taskStatus').value = currentTask.status || '未対応';
     
+    // 優先度表示の設定
+    displayPriority();
+    document.getElementById('taskPrioritySelect').value = currentTask.priority || 'medium';
+    
     // 担当者表示の設定（複数対応）
     displayAssignees();
     setupAssigneeEdit();
@@ -97,6 +101,8 @@ function enableEdit() {
     document.getElementById('taskTypeDisplay').style.display = 'none';
     document.getElementById('taskTypeSelect').style.display = 'inline-block';
     document.getElementById('taskStatus').disabled = false;
+    document.getElementById('taskPriorityDisplay').style.display = 'none';
+    document.getElementById('taskPrioritySelect').style.display = 'inline-block';
     document.getElementById('taskDescription').disabled = false;
     document.getElementById('taskEndDate').disabled = false;
     
@@ -121,6 +127,8 @@ function cancelEdit() {
     document.getElementById('taskTypeDisplay').style.display = 'inline-block';
     document.getElementById('taskTypeSelect').style.display = 'none';
     document.getElementById('taskStatus').disabled = true;
+    document.getElementById('taskPriorityDisplay').style.display = 'inline-block';
+    document.getElementById('taskPrioritySelect').style.display = 'none';
     document.getElementById('taskDescription').disabled = true;
     document.getElementById('taskEndDate').disabled = true;
     
@@ -147,6 +155,7 @@ function saveTaskChanges() {
     const updates = {
         type: document.getElementById('taskTypeSelect').value,
         status: document.getElementById('taskStatus').value,
+        priority: document.getElementById('taskPrioritySelect').value,
         assignees: selectedAssignees,
         // 後方互換性のため最初の担当者をassigneeにも設定
         assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '',
@@ -446,6 +455,27 @@ function setupEditDropdownOutsideClick() {
             }
         }
     });
+}
+
+// 優先度表示関数
+function displayPriority() {
+    const priorityDisplay = document.getElementById('taskPriorityDisplay');
+    const priority = currentTask.priority || 'medium';
+    
+    const priorityMap = {
+        'high': { label: '高', icon: '↑', class: 'high' },
+        'medium': { label: '中', icon: '→', class: 'medium' },
+        'low': { label: '低', icon: '↓', class: 'low' }
+    };
+    
+    const priorityInfo = priorityMap[priority] || priorityMap['medium'];
+    
+    priorityDisplay.innerHTML = `
+        <span class="priority-badge priority-${priorityInfo.class}">
+            <span class="priority-icon">${priorityInfo.icon}</span>
+            <span class="priority-label">${priorityInfo.label}</span>
+        </span>
+    `;
 }
 
 function highlightChanges(notificationId) {

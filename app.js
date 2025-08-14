@@ -16,6 +16,7 @@ function initializeApp() {
     // フォームイベント設定
     document.getElementById('taskForm').addEventListener('submit', handleTaskSubmit);
     document.getElementById('personForm').addEventListener('submit', handlePersonSubmit);
+    document.getElementById('personEditForm').addEventListener('submit', handlePersonEditSubmit);
     document.getElementById('projectForm').addEventListener('submit', handleProjectSubmit);
     
     // 定期的に通知をチェック（30秒ごと）
@@ -440,19 +441,26 @@ function loadMasterData() {
 function loadPersonList() {
     const persons = dataManager.getPersons();
     const personList = document.getElementById('personList');
+    const currentUser = sessionStorage.getItem('userId');
+    const isAdmin = currentUser === 'pialabuzz';
     
     personList.innerHTML = '';
     persons.forEach(person => {
         const div = document.createElement('div');
         div.className = 'master-item';
+        
+        // 管理者のみ編集ボタンを表示
+        const editButton = isAdmin ? `<button onclick="editPerson(${person.id})" class="edit-btn">編集</button>` : '';
+        const deleteButton = isAdmin ? `<button onclick="deletePerson(${person.id})" class="delete-btn">削除</button>` : '';
+        
         div.innerHTML = `
             <div class="master-info">
                 <strong>${person.name}</strong>
-                <span>${person.department || ''}</span>
+                <span>ID: ${person.loginId || person.name} | ${person.department || '部署未設定'}${person.email ? ' | ' + person.email : ''}</span>
             </div>
             <div class="master-actions">
-                <button onclick="editPerson(${person.id})" class="edit-btn">編集</button>
-                <button onclick="deletePerson(${person.id})" class="delete-btn">削除</button>
+                ${editButton}
+                ${deleteButton}
             </div>
         `;
         personList.appendChild(div);
@@ -492,29 +500,188 @@ function closePersonModal() {
     document.getElementById('personForm').reset();
 }
 
+// 人員編集フォーム送信処理
+function handlePersonEditSubmit(e) {
+    e.preventDefault();
+    
+    const editingId = parseInt(document.getElementById('personEditForm').dataset.editingId);
+    const loginId = document.getElementById('personEditLoginId').value;
+    
+    // ログインIDの重複チェック（自分以外）
+    const persons = dataManager.getPersons();
+    const existingPerson = persons.find(p => p.loginId === loginId && p.id !== editingId);
+    if (existingPerson) {
+        alert('このログインIDは既に使用されています。');
+        return;
+    }
+    
+    const updates = {
+        name: document.getElementById('personEditName').value,
+        loginId: loginId,
+        password: document.getElementById('personEditPassword').value,
+        department: document.getElementById('personEditDepartment').value,
+        email: document.getElementById('personEditEmail').value,
+        chatworkId: document.getElementById('personEditChatworkId').value
+    };
+    
+    const result = dataManager.updatePerson(editingId, updates);
+    if (result) {
+        alert(`人員情報を更新しました。\\n名前: ${updates.name}\\nログインID: ${updates.loginId}\\nパスワード: ${updates.password}`);
+        closePersonEditModal();
+        loadPersonList();
+    } else {
+        alert('更新に失敗しました。');
+    }
+}
+
+// パスワード自動生成関数
+function generateAutoPassword() {
+    const nameInput = document.getElementById('personName');
+    const loginIdInput = document.getElementById('personLoginId');
+    const passwordInput = document.getElementById('personPassword');
+    
+    if (!nameInput.value) {
+        alert('先に名前を入力してください。');
+        return;
+    }
+    
+    // ログインIDが空の場合は、名前からローマ字を生成
+    if (!loginIdInput.value) {
+        const romaji = convertToRomaji(nameInput.value);
+        loginIdInput.value = romaji;
+    }
+    
+    // パスワードを生成（ログインID + 123）
+    passwordInput.value = loginIdInput.value + '123';
+}
+
+// 簡易的な漢字→ローマ字変換関数
+function convertToRomaji(name) {
+    // 一般的な苗字の変換マップ
+    const kanjiMap = {
+        '長野': 'nagano',
+        '山田': 'yamada',
+        '佐藤': 'sato',
+        '鈴木': 'suzuki',
+        '田中': 'tanaka',
+        '高橋': 'takahashi',
+        '渡辺': 'watanabe',
+        '伊藤': 'ito',
+        '中村': 'nakamura',
+        '小林': 'kobayashi',
+        '加藤': 'kato',
+        '吉田': 'yoshida',
+        '山本': 'yamamoto',
+        '森': 'mori',
+        '斉藤': 'saito',
+        '清水': 'shimizu',
+        '山口': 'yamaguchi',
+        '松本': 'matsumoto',
+        '井上': 'inoue',
+        '木村': 'kimura'
+    };
+    
+    // 苗字（最初の2文字）を取得
+    const surname = name.substring(0, 2);
+    
+    // マップに存在する場合はそれを使用
+    if (kanjiMap[surname]) {
+        return kanjiMap[surname];
+    }
+    
+    // 存在しない場合は最初の2文字をそのまま使用
+    return name.substring(0, 2).toLowerCase();
+}
+
 function handlePersonSubmit(e) {
     e.preventDefault();
     
+    const loginId = document.getElementById('personLoginId').value;
+    
+    // ログインIDの重複チェック
+    const persons = dataManager.getPersons();
+    if (persons.some(p => p.loginId === loginId)) {
+        alert('このログインIDは既に使用されています。');
+        return;
+    }
+    
     const person = {
         name: document.getElementById('personName').value,
-        department: document.getElementById('personDepartment').value
+        loginId: loginId,
+        password: document.getElementById('personPassword').value,
+        department: document.getElementById('personDepartment').value,
+        email: document.getElementById('personEmail').value,
+        chatworkId: document.getElementById('personChatworkId').value
     };
     
     dataManager.savePerson(person);
     closePersonModal();
     loadPersonList();
+    alert(`人員を追加しました。\nログインID: ${person.loginId}\nパスワード: ${person.password}`);
 }
 
 function editPerson(id) {
-    const persons = dataManager.getPersons();
-    const person = persons.find(p => p.id === id);
-    if (person) {
-        const newName = prompt('名前を編集:', person.name);
-        if (newName) {
-            dataManager.updatePerson(id, { name: newName });
-            loadPersonList();
-        }
+    // pialabuzzアカウントのみ編集可能
+    const currentUser = sessionStorage.getItem('userId');
+    if (currentUser !== 'pialabuzz') {
+        alert('人員情報の編集は管理者のみ可能です。');
+        return;
     }
+    
+    openPersonEditModal(id);
+}
+
+// 人員編集モーダルを開く
+function openPersonEditModal(personId) {
+    const persons = dataManager.getPersons();
+    const person = persons.find(p => p.id === personId);
+    
+    if (!person) {
+        alert('人員情報が見つかりません。');
+        return;
+    }
+    
+    // フォームに現在の情報を設定
+    document.getElementById('personEditName').value = person.name || '';
+    document.getElementById('personEditLoginId').value = person.loginId || person.name;
+    document.getElementById('personEditPassword').value = person.password || '';
+    document.getElementById('personEditDepartment').value = person.department || '';
+    document.getElementById('personEditEmail').value = person.email || '';
+    document.getElementById('personEditChatworkId').value = person.chatworkId || '';
+    
+    // 編集対象のIDを保存
+    document.getElementById('personEditForm').dataset.editingId = personId;
+    
+    // モーダルを表示
+    document.getElementById('personEditModal').style.display = 'block';
+}
+
+// 人員編集モーダルを閉じる
+function closePersonEditModal() {
+    document.getElementById('personEditModal').style.display = 'none';
+    document.getElementById('personEditForm').reset();
+    delete document.getElementById('personEditForm').dataset.editingId;
+}
+
+// 人員編集用パスワード自動生成
+function generateEditAutoPassword() {
+    const nameInput = document.getElementById('personEditName');
+    const loginIdInput = document.getElementById('personEditLoginId');
+    const passwordInput = document.getElementById('personEditPassword');
+    
+    if (!nameInput.value) {
+        alert('先に名前を入力してください。');
+        return;
+    }
+    
+    // ログインIDが空の場合は、名前からローマ字を生成
+    if (!loginIdInput.value) {
+        const romaji = convertToRomaji(nameInput.value);
+        loginIdInput.value = romaji;
+    }
+    
+    // パスワードを生成（ログインID + 123）
+    passwordInput.value = loginIdInput.value + '123';
 }
 
 function deletePerson(id) {
@@ -759,7 +926,7 @@ window.onclick = function(event) {
 
 // 通知関連の関数
 function loadNotifications() {
-    const currentUser = sessionStorage.getItem('userId');
+    const currentUser = sessionStorage.getItem('userName') || sessionStorage.getItem('userId');
     const unreadNotifications = dataManager.getUnreadNotifications(currentUser);
     const badge = document.getElementById('notificationBadge');
     
@@ -784,7 +951,7 @@ function toggleNotifications() {
 }
 
 function displayNotifications() {
-    const currentUser = sessionStorage.getItem('userId');
+    const currentUser = sessionStorage.getItem('userName') || sessionStorage.getItem('userId');
     const notifications = dataManager.getNotifications(currentUser);
     const notificationList = document.getElementById('notificationList');
     
@@ -815,7 +982,23 @@ function createNotificationElement(notification) {
     let message = '';
     const details = notification.details;
     
-    if (notification.type === 'update') {
+    if (notification.type === 'created') {
+        // タスク作成通知
+        const priorityMap = {
+            'high': '高',
+            'medium': '中',
+            'low': '低'
+        };
+        const priorityLabel = priorityMap[details.priority] || '中';
+        
+        message = `<strong>新しいタスクが割り当てられました</strong>`;
+        message += `<br>タスク: ${details.taskName}`;
+        message += `<br>優先度: ${priorityLabel}`;
+        if (details.endDate) {
+            message += `<br>期限: ${details.endDate}`;
+        }
+        message += `<br><span class="notification-meta">作成者: ${details.createdBy}</span>`;
+    } else if (notification.type === 'update') {
         message = `<strong>${details.taskName}</strong>`;
         
         if (details.statusChange) {
@@ -863,8 +1046,9 @@ function openTaskFromNotification(taskId, notificationId) {
 }
 
 function markAllAsRead() {
-    const currentUser = sessionStorage.getItem('userId');
-    dataManager.markAllNotificationsAsRead(currentUser);
+    const currentUserId = sessionStorage.getItem('userId');
+    const currentUserName = sessionStorage.getItem('userName');
+    dataManager.markAllNotificationsAsRead(currentUserId, currentUserName);
     
     // UIを更新
     loadNotifications();
