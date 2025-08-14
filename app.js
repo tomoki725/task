@@ -37,9 +37,14 @@ function showSection(section) {
     if (section === 'tasks') {
         document.getElementById('tasksSection').classList.add('active');
         navBtns[0].classList.add('active');
+        loadTasks(); // タスク一覧を読み込み
+    } else if (section === 'archive') {
+        document.getElementById('archiveSection').classList.add('active');
+        navBtns[1].classList.add('active');
+        loadArchivedTasks(); // アーカイブタスクを読み込み
     } else if (section === 'master') {
         document.getElementById('masterSection').classList.add('active');
-        navBtns[1].classList.add('active');
+        navBtns[2].classList.add('active');
     }
 }
 
@@ -148,9 +153,9 @@ function createTaskElement(task) {
         assigneeInfo = `<div class="assignees-badges">${assigneeBadges}</div>`;
     }
     
-    // ステータスが「終了」の場合のみ削除ボタンを表示
-    const deleteButton = task.status === '終了' ? 
-        `<button onclick="deleteTaskConfirm(${task.id})" class="delete-btn-compact">削除</button>` : '';
+    // ステータスが「終了」の場合のみアーカイブボタンを表示
+    const archiveButton = task.status === '終了' ? 
+        `<button onclick="archiveTaskConfirm(${task.id})" class="archive-btn-compact">アーカイブ</button>` : '';
     
     div.innerHTML = `
         <div class="task-row">
@@ -169,7 +174,7 @@ function createTaskElement(task) {
             </div>
             <div class="task-actions">
                 <button onclick="openTaskDetail(${task.id})" class="detail-btn-compact">詳細</button>
-                ${deleteButton}
+                ${archiveButton}
             </div>
         </div>
     `;
@@ -220,8 +225,8 @@ function openTaskDetail(taskId) {
     window.location.href = `task-detail.html?id=${taskId}`;
 }
 
-// タスク削除確認
-function deleteTaskConfirm(taskId) {
+// タスクアーカイブ確認
+function archiveTaskConfirm(taskId) {
     const task = dataManager.getTaskById(taskId);
     if (!task) {
         alert('タスクが見つかりません');
@@ -229,14 +234,125 @@ function deleteTaskConfirm(taskId) {
     }
     
     if (task.status !== '終了') {
-        alert('終了状態のタスクのみ削除できます');
+        alert('終了状態のタスクのみアーカイブできます');
         return;
     }
     
-    if (confirm(`タスク「${task.name}」を完全に削除しますか？\nこの操作は取り消せません。`)) {
-        dataManager.deleteTask(taskId);
+    if (confirm(`タスク「${task.name}」をアーカイブしますか？\nアーカイブしたタスクは一覧に表示されなくなりますが、データは保持されます。`)) {
+        dataManager.archiveTask(taskId);
         loadTasks(); // タスクリストを再読み込み
-        alert('タスクを削除しました');
+        alert('タスクをアーカイブしました');
+    }
+}
+
+// アーカイブタスク読み込み
+function loadArchivedTasks() {
+    const archivedTasks = dataManager.getArchivedTasks();
+    const archiveTaskList = document.getElementById('archiveTaskList');
+    
+    if (archivedTasks.length === 0) {
+        archiveTaskList.innerHTML = '<div class="no-tasks">アーカイブされたタスクはありません</div>';
+        return;
+    }
+    
+    archiveTaskList.innerHTML = '';
+    archivedTasks.forEach(task => {
+        const taskElement = createArchivedTaskElement(task);
+        archiveTaskList.appendChild(taskElement);
+    });
+}
+
+// アーカイブタスク要素作成
+function createArchivedTaskElement(task) {
+    const div = document.createElement('div');
+    div.className = 'task-item archived-task';
+    div.dataset.taskId = task.id;
+    
+    // 優先度表示
+    const priorityMap = {
+        'high': { text: '高', icon: '↑', color: '#e53e3e' },
+        'medium': { text: '中', icon: '→', color: '#d69e2e' },
+        'low': { text: '低', icon: '↓', color: '#3182ce' }
+    };
+    
+    const priority = priorityMap[task.priority] || priorityMap['medium'];
+    const priorityDisplay = `<span class="priority-badge" style="color: ${priority.color};">${priority.icon} ${priority.text}</span>`;
+    
+    // 期限の表示を簡潔に
+    let deadlineInfo = '';
+    if (task.endDate) {
+        deadlineInfo = `<span class="deadline-info">~${task.endDate}</span>`;
+    }
+    
+    // タスクIDの表示
+    const taskIdDisplay = task.taskId ? 
+        `<span class="task-id">[${task.taskId}]</span>` : 
+        `<span class="task-id">[T-${new Date(task.createdAt || Date.now()).toISOString().slice(0,10).replace(/-/g, '')}-OLD]</span>`;
+    
+    // プロジェクト名の表示
+    let projectBadge = '';
+    if (task.project) {
+        projectBadge = `<span class="project-badge">${task.project}</span>`;
+    }
+    
+    // 複数担当者情報
+    let assigneeInfo = '';
+    const assignees = task.assignees || (task.assignee ? [task.assignee] : []);
+    
+    if (assignees.length > 0) {
+        const assigneeBadges = assignees.map((assignee, index) => {
+            const colorClass = getAssigneeColorClass(assignee);
+            return `<span class="assignee-badge assignee-color-${colorClass}">${assignee}</span>`;
+        }).join('');
+        
+        assigneeInfo = `<div class="assignees-badges">${assigneeBadges}</div>`;
+    }
+    
+    // アーカイブ日時の表示
+    let archiveInfo = '';
+    if (task.archivedAt) {
+        const archiveDate = new Date(task.archivedAt).toLocaleDateString('ja-JP');
+        archiveInfo = `<span class="archive-date">アーカイブ日: ${archiveDate}</span>`;
+    }
+    
+    div.innerHTML = `
+        <div class="task-row">
+            <div class="task-main">
+                <div class="task-title-row">
+                    ${taskIdDisplay}
+                    <h3 class="task-name-compact">${task.name}</h3>
+                </div>
+                <div class="task-info-compact">
+                    ${priorityDisplay}
+                    <span class="task-status-compact status-${task.status}">${task.status}</span>
+                    ${deadlineInfo}
+                    ${projectBadge}
+                    ${assigneeInfo}
+                    ${archiveInfo}
+                </div>
+            </div>
+            <div class="task-actions">
+                <button onclick="openTaskDetail(${task.id})" class="detail-btn-compact">詳細</button>
+                <button onclick="unarchiveTaskConfirm(${task.id})" class="unarchive-btn-compact">復元</button>
+            </div>
+        </div>
+    `;
+    
+    return div;
+}
+
+// アーカイブタスク復元確認
+function unarchiveTaskConfirm(taskId) {
+    const task = dataManager.getTaskById(taskId);
+    if (!task) {
+        alert('タスクが見つかりません');
+        return;
+    }
+    
+    if (confirm(`タスク「${task.name}」を復元しますか？\n復元したタスクは通常のタスク一覧に表示されます。`)) {
+        dataManager.unarchiveTask(taskId);
+        loadArchivedTasks(); // アーカイブタスクリストを再読み込み
+        alert('タスクを復元しました');
     }
 }
 

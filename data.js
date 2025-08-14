@@ -49,7 +49,7 @@ class DataManager {
 
     // 既存タスクにタスクIDを付与する移行処理
     migrateTaskIds() {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         let needsUpdate = false;
         
         // 日付ごとのカウンター管理
@@ -86,15 +86,27 @@ class DataManager {
     }
 
     // タスク関連メソッド
-    getTasks() {
+    getAllTasks() {
         return JSON.parse(localStorage.getItem('tasks') || '[]');
+    }
+
+    getTasks() {
+        const allTasks = this.getAllTasks();
+        // アーカイブされていないタスクのみを返す
+        return allTasks.filter(task => !task.archived);
+    }
+
+    getArchivedTasks() {
+        const allTasks = this.getAllTasks();
+        // アーカイブされたタスクのみを返す
+        return allTasks.filter(task => task.archived);
     }
 
     // タスクID生成関数（ランダム英数字版）
     generateTaskId() {
         const today = new Date();
         const dateStr = today.toISOString().slice(0,10).replace(/-/g, '');
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         
         // ランダムIDを生成（重複しないまで繰り返す）
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -121,7 +133,7 @@ class DataManager {
     }
 
     saveTask(task) {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         task.id = Date.now();
         task.taskId = this.generateTaskId(); // 表示用ID
         task.createdAt = new Date().toISOString();
@@ -176,7 +188,7 @@ class DataManager {
     }
 
     updateTask(taskId, updates) {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         const taskIndex = tasks.findIndex(t => t.id === taskId);
         
         if (taskIndex !== -1) {
@@ -244,20 +256,44 @@ class DataManager {
         return null;
     }
 
+    archiveTask(taskId) {
+        const tasks = this.getAllTasks(); // アーカイブ済みも含む全タスクを取得
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            tasks[taskIndex].archived = true;
+            tasks[taskIndex].archivedAt = new Date().toISOString();
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            return true;
+        }
+        return false;
+    }
+
+    unarchiveTask(taskId) {
+        const tasks = this.getAllTasks(); // アーカイブ済みも含む全タスクを取得
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            tasks[taskIndex].archived = false;
+            delete tasks[taskIndex].archivedAt;
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            return true;
+        }
+        return false;
+    }
+
     deleteTask(taskId) {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks(); // アーカイブ済みも含む全タスクを取得
         const filteredTasks = tasks.filter(t => t.id !== taskId);
         localStorage.setItem('tasks', JSON.stringify(filteredTasks));
     }
 
     getTaskById(taskId) {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         return tasks.find(t => t.id === parseInt(taskId));
     }
 
     // タスクIDで検索
     getTaskByTaskId(taskId) {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         return tasks.find(t => t.taskId === taskId);
     }
 
@@ -435,7 +471,7 @@ class DataManager {
 
     // 既存タスクの担当者を配列形式に移行
     migrateAssignees() {
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         let needsUpdate = false;
         
         tasks.forEach(task => {
@@ -496,7 +532,7 @@ class DataManager {
     // 通知関連メソッド
     getNotifications(userId) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         const userName = sessionStorage.getItem('userName') || userId;
         
         // 現在のユーザーが担当者のタスクに関する通知のみフィルタリング
@@ -548,7 +584,7 @@ class DataManager {
 
     markAllNotificationsAsRead(userId, userName) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-        const tasks = this.getTasks();
+        const tasks = this.getAllTasks();
         
         notifications.forEach(notif => {
             const task = tasks.find(t => t.id === notif.taskId);
