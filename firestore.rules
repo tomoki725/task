@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 開発環境用ルール（全アクセス許可）
+    // 警告: これは開発用の設定です。本番環境では適切な認証ルールに変更してください
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // 本番環境用ルール例（コメントアウト）
+    // ログインユーザーのみアクセス可能にする場合：
+    /*
+    match /tasks/{task} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    match /persons/{person} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'admin';
+    }
+    
+    match /projects/{project} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    match /comments/{comment} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    match /notifications/{notification} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    */
+  }
+}

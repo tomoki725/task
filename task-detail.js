@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTaskDetail();
 });
 
-function loadTaskDetail() {
+async function loadTaskDetail() {
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('id');
     const notificationId = urlParams.get('notificationId');
@@ -18,7 +18,7 @@ function loadTaskDetail() {
         return;
     }
     
-    currentTask = dataManager.getTaskById(taskId);
+    currentTask = await dataManager.getTaskById(taskId);
     
     if (!currentTask) {
         alert('タスクが見つかりません');
@@ -26,9 +26,9 @@ function loadTaskDetail() {
         return;
     }
     
-    displayTaskDetail();
+    await displayTaskDetail();
     loadHistory();
-    loadComments();
+    await loadComments();
     
     // 通知からアクセスした場合、変更箇所をハイライト
     if (notificationId) {
@@ -36,7 +36,7 @@ function loadTaskDetail() {
     }
 }
 
-function displayTaskDetail() {
+async function displayTaskDetail() {
     // タスクIDの表示（既存データ対応）
     const taskIdText = currentTask.taskId ? 
         currentTask.taskId : 
@@ -54,7 +54,7 @@ function displayTaskDetail() {
     
     // 担当者表示の設定（複数対応）
     displayAssignees();
-    setupAssigneeEdit();
+    await setupAssigneeEdit();
     
     // プロジェクト情報の表示
     if (currentTask.project) {
@@ -66,7 +66,7 @@ function displayTaskDetail() {
     }
     
     // プロジェクト選択肢を読み込み
-    loadProjectOptions();
+    await loadProjectOptions();
     
     document.getElementById('taskDescription').value = currentTask.content || '';
     document.getElementById('taskStartDate').value = currentTask.startDate || '';
@@ -120,7 +120,7 @@ function enableEdit() {
     document.getElementById('editActions').style.display = 'flex';
 }
 
-function cancelEdit() {
+async function cancelEdit() {
     isEditMode = false;
     
     // 編集不可にする
@@ -144,40 +144,83 @@ function cancelEdit() {
     document.getElementById('editActions').style.display = 'none';
     
     // 元の値に戻す
-    displayTaskDetail();
+    await displayTaskDetail();
 }
 
-function saveTaskChanges() {
-    // 選択された担当者を取得
-    const selectedAssignees = Array.from(document.querySelectorAll('#assigneeEditDropdownMenu input[type="checkbox"]:checked'))
-        .map(cb => cb.value);
-    
-    const updates = {
-        type: document.getElementById('taskTypeSelect').value,
-        status: document.getElementById('taskStatus').value,
-        priority: document.getElementById('taskPrioritySelect').value,
-        assignees: selectedAssignees,
-        // 後方互換性のため最初の担当者をassigneeにも設定
-        assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '',
-        content: document.getElementById('taskDescription').value,
-        endDate: document.getElementById('taskEndDate').value
-    };
-    
-    // プロジェクトタスクの場合のみプロジェクト情報を追加
-    if (updates.type === 'project') {
-        updates.project = document.getElementById('taskProjectSelect').value;
-    } else {
-        updates.project = ''; // プロジェクトタスクでない場合はクリア
-    }
-    
-    // 更新を保存
-    const updatedTask = dataManager.updateTask(currentTask.id, updates);
-    
-    if (updatedTask) {
-        currentTask = updatedTask;
-        alert('タスクを更新しました');
-        cancelEdit();
-        loadHistory();
+async function saveTaskChanges() {
+    try {
+        console.log('💾 タスク保存処理を開始...');
+        
+        // ボタンを一時的に無効化（重複クリック防止）
+        const saveBtn = document.querySelector('.save-btn');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = '保存中...';
+        }
+        
+        // 安全なDOM要素値取得関数
+        const getElementValue = (elementId, defaultValue = '') => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`⚠️ 要素が見つかりません: ${elementId}`);
+                return defaultValue;
+            }
+            const value = element.value;
+            // undefined/nullを空文字に変換
+            return (value === undefined || value === null) ? defaultValue : value;
+        };
+        
+        // 選択された担当者を取得（安全）
+        const selectedAssignees = Array.from(document.querySelectorAll('#assigneeEditDropdownMenu input[type="checkbox"]:checked'))
+            .map(cb => cb.value)
+            .filter(value => value !== undefined && value !== null && value !== ''); // 無効値を除去
+        
+        const updates = {
+            type: getElementValue('taskTypeSelect', 'department'),
+            status: getElementValue('taskStatus', '未対応'),
+            priority: getElementValue('taskPrioritySelect', 'medium'),
+            assignees: selectedAssignees,
+            // 後方互換性のため最初の担当者をassigneeにも設定
+            assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '',
+            content: getElementValue('taskDescription', ''),
+            endDate: getElementValue('taskEndDate', '')
+        };
+        
+        // プロジェクトタスクの場合のみプロジェクト情報を追加
+        if (updates.type === 'project') {
+            updates.project = getElementValue('taskProjectSelect', '');
+        } else {
+            updates.project = ''; // プロジェクトタスクでない場合はクリア
+        }
+        
+        console.log('📝 更新データ:', updates);
+        
+        // 更新を保存（同期機能はそのまま動作継続）
+        const updatedTask = await dataManager.updateTask(currentTask.id, updates);
+        
+        if (updatedTask) {
+            currentTask = updatedTask;
+            console.log('✅ タスク更新成功');
+            alert('タスクを更新しました');
+            cancelEdit();
+            await loadHistory(); // 履歴の非同期読み込み
+        } else {
+            throw new Error('タスク更新に失敗しました');
+        }
+        
+    } catch (error) {
+        console.error('❌ タスク保存エラー:', error);
+        alert('タスクの保存に失敗しました。再度お試しください。\nエラー: ' + error.message);
+        
+    } finally {
+        // ボタン状態を復元（エラー時も必ず実行）
+        const saveBtn = document.querySelector('.save-btn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '保存';
+        }
+        console.log('💾 タスク保存処理完了');
     }
 }
 
@@ -220,8 +263,8 @@ function loadHistory() {
     });
 }
 
-function loadComments() {
-    const comments = dataManager.getComments(currentTask.id);
+async function loadComments() {
+    const comments = await dataManager.getComments(currentTask.id);
     const commentList = document.getElementById('commentList');
     const currentUser = sessionStorage.getItem('userId');
     
@@ -258,14 +301,16 @@ function loadComments() {
     });
 }
 
-function markCommentAsRead(commentId) {
-    const result = dataManager.markCommentAsRead(currentTask.id, commentId);
-    if (result) {
-        loadComments(); // UIを更新
+async function markCommentAsRead(commentId) {
+    const currentUserId = sessionStorage.getItem('userId');
+    const result = await dataManager.markCommentAsRead(commentId, currentUserId);
+    if (result !== false) {
+        await loadComments(); // UIを更新
+        console.log('✅ コメントを既読にしました:', commentId);
     }
 }
 
-function addComment() {
+async function addComment() {
     const commentInput = document.getElementById('commentInput');
     const commentText = commentInput.value.trim();
     
@@ -274,9 +319,15 @@ function addComment() {
         return;
     }
     
-    dataManager.addComment(currentTask.id, commentText);
+    const comment = {
+        taskId: currentTask.id,
+        text: commentText,
+        user: sessionStorage.getItem('userName') || sessionStorage.getItem('userId'),
+        timestamp: new Date().toISOString()
+    };
+    await dataManager.saveComment(comment);
     commentInput.value = '';
-    loadComments();
+    await loadComments();
 }
 
 function formatDateTime(timestamp) {
@@ -291,9 +342,9 @@ function formatDateTime(timestamp) {
 }
 
 // プロジェクト選択肢を読み込み
-function loadProjectOptions() {
+async function loadProjectOptions() {
     const projectSelect = document.getElementById('taskProjectSelect');
-    const projects = dataManager.getProjects();
+    const projects = await dataManager.getProjects();
     
     // 既存のオプションをクリア（デフォルトオプション以外）
     while (projectSelect.children.length > 1) {
@@ -354,8 +405,8 @@ function displayAssignees() {
 }
 
 // 担当者編集用ドロップダウン設定
-function setupAssigneeEdit() {
-    const persons = dataManager.getPersons();
+async function setupAssigneeEdit() {
+    const persons = await dataManager.getPersons();
     const currentAssignees = currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : []);
     
     setupAssigneeEditDropdown(persons, currentAssignees);

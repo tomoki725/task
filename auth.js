@@ -86,7 +86,10 @@ function authenticateUser(userId, password) {
     return false;
 }
 
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+// ログインフォームが存在する場合のみイベントリスナーを追加
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const userId = document.getElementById('userId').value;
@@ -127,7 +130,8 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         // パスワードフィールドをクリア
         document.getElementById('password').value = '';
     }
-});
+    });
+}
 
 // セッションチェック関数
 function checkSession() {
@@ -144,7 +148,7 @@ function checkSession() {
 }
 
 // ログアウト関数
-function logout() {
+window.logout = function() {
     sessionStorage.clear();
     window.location.href = 'index.html';
 }
